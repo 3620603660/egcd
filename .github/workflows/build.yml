@@ -1,0 +1,38 @@
+name: Build Kernel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-kernel:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential libncurses5-dev libssl-dev libelf-dev
+
+    - name: Configure kernel
+      run: |
+        make ARCH=arm64 oneplus_defconfig
+
+    - name: Modify build options
+      run: |
+        sed -i 's/KBUILD_CFLAGS :=.*/KBUILD_CFLAGS := -O3/' Makefile
+
+    - name: Build kernel
+      run: |
+        make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc)
+
+    - name: Upload kernel image
+      uses: actions/upload-artifact@v2
+      with:
+        name: kernel-image
+        path: arch/arm64/boot/Image
