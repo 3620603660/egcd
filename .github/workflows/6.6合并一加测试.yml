@@ -85,7 +85,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-v2_kun
+          key: ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-v2_suk
           restore-keys: |
             ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-ccache-
             ${{ runner.os }}-${{ github.repository }}-ccache-
@@ -124,55 +124,48 @@ jobs:
           rm -f kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports to remove."
           rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports to remove."
          
-      - name: 4.1 设置 KernelSU Next
+      - name: Set up SukiSU
         run: |
-          cd kernel_workspace/kernel_platform
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s l10n_next
-          cd KernelSU-Next
-          KSU_VERSION=$(expr $(/usr/bin/git rev-list --count HEAD) "+" 10200)
-          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-          sed -i "s/DKSU_VERSION=11998/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+         cd kernel_workspace/kernel_platform
+         curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-main
+         cd ./KernelSU
+         KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
+         echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
+         export KSU_VERSION=$KSU_VERSION
+         sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+         KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10700)
+         echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
+         export KSU_VERSION=$KSU_VERSION
 
-      - name: 5.1 设置 SUSFS & 应用补丁
+      - name: Set up SUSFS & apply patches
         run: |
          set -e
+         
          cd kernel_workspace
-         git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ inputs.ANDROID_TARGET_VERSION }}-${{ inputs.KERNEL_BASE_VERSION }}
+         git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}
          git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU_patch.git
-         git clone --depth=1 https://$TOKEN@github.com/3620603660/boot.git
-         git clone --depth=1 https://github.com/WildPlusKernel/kernel_patches.git
-         git clone --depth=1 https://github.com/3620603660/GKI_KernelSU_SUSFS.git zzh_patch
-         
+         git clone https://$TOKEN@github.com/3620603660/boot.git
          cd kernel_platform
-         cp -f ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_TARGET_VERSION }}-${{ github.event.inputs.KERNEL_BASE_VERSION }}.patch ./common/ || true
-         cp -f ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./KernelSU-Next/ || true
-         cp -f ../zzh_patch/next-patch/* ./KernelSU-Next/ || true
-         cp -f ../susfs4ksu/kernel_patches/fs/* ./common/fs/ || true
-         cp -f ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/ || true
-         cp -f ../boot/1.patch ./common/ || true
-         
-         cd ./KernelSU-Next
-         patch -p1 --forward --fuzz=3 < 10_enable_susfs_for_ksu.patch || true
-         patch -p1 --fuzz=3 --forward < apk_sign.patch || true
-         patch -p1 --fuzz=3 --forward < core_hook.patch || true
-         patch -p1 --fuzz=3 --forward < ksud.patch || true
-         patch -p1 --fuzz=3 --forward < selinux.patch || true
-         patch -p1 --fuzz=3 --forward < rules.c.patch || true
-         patch -p1 --fuzz=3 --forward < sucompat.c.patch || true
-         patch -p1 --fuzz=3 --forward < kernel_compat.c.patch || true
-         patch -p1 --fuzz=3 --forward < min_scope_syscall_hooks_v1.4.patch || true
-         cd ../
-         
-         cd ./common/
-         patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_TARGET_VERSION }}-${{ github.event.inputs.KERNEL_BASE_VERSION }}.patch || true
-         cp -f ../../kernel_patches/69_hide_stuff.patch ./
-         cp -f ../../kernel_patches/next/scope_min_manual_hooks_v1.4.patch ./
-         patch -p1 -F 3 < scope_min_manual_hooks_v1.4.patch || true
-         patch -p1 -F 3 < 69_hide_stuff.patch || true
-         patch -s -p1 -F 3 < 1.patch || true
-         echo "✅ SUSFS 和 scope_min_manual_hooks_v1.4 patch 应用完成"
-
-         sed -i '/^static inline int ksu_access_ok/,/^}/ s/^/\/\//' drivers/kernelsu/kernel_compat.c || true
+         cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}.patch ./common/ || true
+         mkdir -p ./common/fs ./common/include/linux ./common/lib ./common/crypto
+         cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/ || true
+         cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/ || true
+         cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./common/include/linux || true
+         cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib || true
+         cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto || true
+         cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/ || true
+         cp ../boot/1.patch ./common/
+         cd ./common
+         PATCH_FILE=50_add_susfs_in_gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}.patch
+         if [[ -f "$PATCH_FILE" ]]; then
+         # sed -i 's/-32,12 +32,38/-32,11 +32,37/g' "$PATCH_FILE"
+         # sed -i '/#include <trace\/hooks\/fs.h>/d' "$PATCH_FILE"
+         patch -p1 < "$PATCH_FILE" || true
+         fi
+         cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
+         patch -p1 -F 3 < syscall_hooks.patch || true
+         patch -s -p1 -F 3 < 1.patch
+         echo "✅ SUSFS 和 syscall_hooks patch 应用完成"
          
       - name: 6.1 添加 SUSFS 及性能优化配置
         run: |
