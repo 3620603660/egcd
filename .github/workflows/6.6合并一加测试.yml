@@ -146,7 +146,7 @@ jobs:
          git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU_patch.git
          git clone https://$TOKEN@github.com/3620603660/boot.git
          cd kernel_platform
-         cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}.patch ./common/ || true
+         cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_TARGET_VERSION }}-${{ github.event.inputs.KERNEL_BASE_VERSION }}.patch ./common/ || true
          mkdir -p ./common/fs ./common/include/linux ./common/lib ./common/crypto
          cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/ || true
          cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/ || true
