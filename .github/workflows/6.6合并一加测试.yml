@@ -221,8 +221,6 @@ jobs:
           
           # 网络性能优化
           CONFIG_BQL=y # 启用BQL (Byte Queue Limits)
-          CONFIG_DEFAULT_NET_SCH="cake" # 默认网络调度器
-          CONFIG_DEFAULT_TCP_CONG="bbr" # 默认TCP拥塞控制算法
           CONFIG_INET=y # 启用IPv4网络协议
           CONFIG_IPV6=y # 启用IPv6网络协议
           CONFIG_NET=y # 启用网络支持
@@ -230,6 +228,8 @@ jobs:
           CONFIG_NET_SCH_CAKE=y # 启用CAKE网络调度器
           CONFIG_NET_SCH_FQ=y # 启用FQ网络调度器
           CONFIG_NET_SCH_FQ_CODEL=y # 启用FQ_CODEL网络调度器
+          CONFIG_DEFAULT_NET_SCH="cake" # 默认网络调度器
+          CONFIG_DEFAULT_TCP_CONG="bbr" # 默认TCP拥塞控制算法
           CONFIG_TCP_CONG_BBR=y # 启用BBR TCP拥塞控制
           CONFIG_TCP_CONG_BIC=n # 禁用BIC TCP拥塞控制
           CONFIG_TCP_CONG_CUBIC=n # 禁用CUBIC TCP拥塞控制
@@ -238,6 +238,41 @@ jobs:
           CONFIG_TCP_FASTOPEN=y # 启用TCP Fast Open
           CONFIG_TCP_SACK=y # 启用TCP SACK
           CONFIG_TCP_TIMESTAMPS=y # 启用TCP时间戳
+
+          # ADIOS 和 O2 优化配置
+          CONFIG_IO_URING=y # 启用io_uring，现代异步I/O接口
+          CONFIG_BLK_MQ_PCI=y # 启用多队列块层PCI支持
+          CONFIG_BLK_MQ_SQ_DEPTH=1024 # 增加提交队列深度
+          CONFIG_CC_OPTIMIZE_FOR_SIZE=n # 禁用为大小优化，启用为性能优化
+          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y # 启用为性能优化
+          CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化
+
+          # 功耗管理和电源优化
+          CONFIG_CPU_FREQ=y
+          CONFIG_CPU_FREQ_STAT=y
+          CONFIG_CPU_IDLE=y
+          CONFIG_DRM_GPU_SCHED=y
+          CONFIG_PM_WAKELOCKS=y
+          CONFIG_PM_WAKELOCKS_GC=y
+
+          # 高级调度器特性
+          CONFIG_SCHED_CORE=y
+          CONFIG_SCHED_MC=y
+          CONFIG_UCLAMP_TASK=y
+          CONFIG_UCLAMP_MIN_TUNABLE=y
+          CONFIG_UCLAMP_MAX_TUNABLE=y
+          CONFIG_SCHED_HRTICK=y
+          CONFIG_CPU_IDLE_GOV_LADDER=y
+          CONFIG_SCHED_EEVDF=y
+          CONFIG_SCHED_EAS=y
+          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
+          CONFIG_CGROUP_SCHED=y
+          CONFIG_FAIR_GROUP_SCHED=y
+          
+          # 内存管理优化
+          CONFIG_LRU_GEN=y
+          CONFIG_TRANSPARENT_HUGEPAGE=y
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
 
           EOF
 
