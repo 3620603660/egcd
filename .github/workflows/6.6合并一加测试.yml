@@ -242,21 +242,19 @@ jobs:
           # ADIOS 和 O2 优化配置
           CONFIG_IO_URING=y # 启用io_uring，用于现代异步I/O操作
           CONFIG_BLK_MQ_PCI=y # 启用多队列块层PCI支持
-          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y # 编译器优化，侧重性能
           CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化级别
+          CONFIG_CC_OPTIMIZE_FOR_SIZE=y # 编译器优化
 
           # I/O 调度器优化
           CONFIG_MQ_IOSCHED_DEADLINE=y # 启用Deadline I/O调度器
-          CONFIG_MQ_IOSCHED_KYBER=n # 禁用Kyber I/O调度器
-          CONFIG_IOSCHED_BFQ=n # 禁用BFQ I/O调度器
-          CONFIG_BLK_DEV_ZONED=n # 禁用分区块设备支持
+          CONFIG_MQ_IOSCHED_KYBER=y # 启用Kyber I/O调度器
+          CONFIG_IOSCHED_BFQ=y # 启用BFQ I/O调度器
 
           # 功耗管理和电源优化
           CONFIG_CPU_FREQ=y # 启用CPU频率缩放
           CONFIG_CPU_FREQ_STAT=y # 启用CPU频率统计
           CONFIG_CPU_IDLE=y # 启用CPU空闲状态管理
           CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y # 设置默认CPU频率调控器为schedutil
-          CONFIG_DRM_GPU_SCHED=y # 启用DRM GPU调度
           CONFIG_PM_WAKELOCKS=y # 启用电源管理唤醒锁
           CONFIG_PM_WAKELOCKS_GC=y # 启用唤醒锁垃圾回收
 
@@ -268,9 +266,6 @@ jobs:
           CONFIG_UCLAMP_MAX_TUNABLE=y # 允许调整UCLAMP最大值
           CONFIG_SCHED_HRTICK=y # 启用高分辨率定时器
           CONFIG_CPU_IDLE_GOV_TEO=y # 启用TEO空闲状态调控器
-          CONFIG_SCHED_EAS=y # 启用能源感知调度
-          CONFIG_CGROUP_SCHED=y # 启用cgroup调度
-          CONFIG_FAIR_GROUP_SCHED=y # 启用公平组调度
 
           # 内存管理优化
           CONFIG_LRU_GEN=y # 启用LRU生成算法，高效内存回收
