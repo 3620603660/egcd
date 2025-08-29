@@ -240,39 +240,43 @@ jobs:
           CONFIG_TCP_TIMESTAMPS=y # 启用TCP时间戳
 
           # ADIOS 和 O2 优化配置
-          CONFIG_IO_URING=y # 启用io_uring，现代异步I/O接口
+          CONFIG_IO_URING=y # 启用io_uring，用于现代异步I/O操作
           CONFIG_BLK_MQ_PCI=y # 启用多队列块层PCI支持
-          CONFIG_BLK_MQ_SQ_DEPTH=1024 # 增加提交队列深度
-          CONFIG_CC_OPTIMIZE_FOR_SIZE=n # 禁用为大小优化，启用为性能优化
-          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y # 启用为性能优化
-          CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化
+          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y # 编译器优化，侧重性能
+          CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化级别
+
+          # I/O 调度器优化
+          CONFIG_MQ_IOSCHED_DEADLINE=y # 启用Deadline I/O调度器
+          CONFIG_MQ_IOSCHED_KYBER=n # 禁用Kyber I/O调度器
+          CONFIG_IOSCHED_BFQ=n # 禁用BFQ I/O调度器
+          CONFIG_BLK_DEV_ZONED=n # 禁用分区块设备支持
 
           # 功耗管理和电源优化
-          CONFIG_CPU_FREQ=y
-          CONFIG_CPU_FREQ_STAT=y
-          CONFIG_CPU_IDLE=y
-          CONFIG_DRM_GPU_SCHED=y
-          CONFIG_PM_WAKELOCKS=y
-          CONFIG_PM_WAKELOCKS_GC=y
+          CONFIG_CPU_FREQ=y # 启用CPU频率缩放
+          CONFIG_CPU_FREQ_STAT=y # 启用CPU频率统计
+          CONFIG_CPU_IDLE=y # 启用CPU空闲状态管理
+          CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y # 设置默认CPU频率调控器为schedutil
+          CONFIG_DRM_GPU_SCHED=y # 启用DRM GPU调度
+          CONFIG_PM_WAKELOCKS=y # 启用电源管理唤醒锁
+          CONFIG_PM_WAKELOCKS_GC=y # 启用唤醒锁垃圾回收
 
           # 高级调度器特性
-          CONFIG_SCHED_CORE=y
-          CONFIG_SCHED_MC=y
-          CONFIG_UCLAMP_TASK=y
-          CONFIG_UCLAMP_MIN_TUNABLE=y
-          CONFIG_UCLAMP_MAX_TUNABLE=y
-          CONFIG_SCHED_HRTICK=y
-          CONFIG_CPU_IDLE_GOV_LADDER=y
-          CONFIG_SCHED_EEVDF=y
-          CONFIG_SCHED_EAS=y
-          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
-          CONFIG_CGROUP_SCHED=y
-          CONFIG_FAIR_GROUP_SCHED=y
-          
+          CONFIG_SCHED_CORE=y # 启用核心调度，适配大小核架构
+          CONFIG_SCHED_MC=y # 启用多核调度优化
+          CONFIG_UCLAMP_TASK=y # 启用任务UCLAMP（利用率上限）
+          CONFIG_UCLAMP_MIN_TUNABLE=y # 允许调整UCLAMP最小值
+          CONFIG_UCLAMP_MAX_TUNABLE=y # 允许调整UCLAMP最大值
+          CONFIG_SCHED_HRTICK=y # 启用高分辨率定时器
+          CONFIG_CPU_IDLE_GOV_TEO=y # 启用TEO空闲状态调控器
+          CONFIG_SCHED_EAS=y # 启用能源感知调度
+          CONFIG_CGROUP_SCHED=y # 启用cgroup调度
+          CONFIG_FAIR_GROUP_SCHED=y # 启用公平组调度
+
           # 内存管理优化
-          CONFIG_LRU_GEN=y
-          CONFIG_TRANSPARENT_HUGEPAGE=y
-          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
+          CONFIG_LRU_GEN=y # 启用LRU生成算法，高效内存回收
+          CONFIG_TRANSPARENT_HUGEPAGE=y # 启用透明大页
+          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n # 禁用总是启用透明大页
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y # 启用通过MADVISE控制透明大页
 
           EOF
 
