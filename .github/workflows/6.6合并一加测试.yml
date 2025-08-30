@@ -127,7 +127,7 @@ jobs:
       - name: Set up SukiSU
         run: |
          cd kernel_workspace/kernel_platform
-         curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-main
+         curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s main
          cd ./KernelSU
          KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
@@ -241,14 +241,11 @@ jobs:
 
           # ADIOS 和 O2 优化配置
           CONFIG_IO_URING=y # 启用io_uring，用于现代异步I/O操作
+          CONFIG_BLK_MQ=y
           CONFIG_BLK_MQ_PCI=y # 启用多队列块层PCI支持
           CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化级别
           CONFIG_CC_OPTIMIZE_FOR_SIZE=y # 编译器优化
-
-          # I/O 调度器优化
-          CONFIG_MQ_IOSCHED_DEADLINE=y # 启用Deadline I/O调度器
-          CONFIG_MQ_IOSCHED_KYBER=y # 启用Kyber I/O调度器
-          CONFIG_IOSCHED_BFQ=y # 启用BFQ I/O调度器
+          CONFIG_MQ_IOSCHED_ADIOS=y
 
           # 功耗管理和电源优化
           CONFIG_CPU_FREQ=y # 启用CPU频率缩放
