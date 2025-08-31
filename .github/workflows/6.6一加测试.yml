@@ -115,7 +115,7 @@ jobs:
       - name: 3.2 初始化并同步内核源码
         run: |
           mkdir -p ${{ env.WORKSPACE_DIR }} && cd ${{ env.WORKSPACE_DIR }}
-          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git \
+          repo init -u https://github.com/3620603660/kernel_manifest.git \
             -b refs/heads/oneplus/${{ github.event.inputs.CPU_ARCH }} \
             -m ${{ github.event.inputs.DEVICE_CONFIG }}.xml --depth=1
           repo sync -c -j$(nproc) --no-tags --no-clone-bundle
