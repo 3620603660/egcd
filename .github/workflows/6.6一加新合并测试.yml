@@ -299,6 +299,11 @@ jobs:
          cp -r ./sched_ext/* ./common/kernel/sched
          rm -rf ./sched_ext/.git
 
+      - name: 8.2 拉取afdo
+        run: |
+          cd ${{ env.WORKSPACE_DIR }}
+          git clone https://github.com/PxxPei/afdo.git
+
       - name: 9.1 安装和设置 Clang 19.0.0 编译器环境
         run: |
           mkdir -p clang19
@@ -317,15 +322,21 @@ jobs:
           export KERNEL_TIME="${{ github.event.inputs.BUILD_TIMESTAMP }}"
           export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
           export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
+
+          # 设置AFDO配置文件
+          export AFDO_PROFILE="${{ github.workspace }}/${{ env.WORKSPACE_DIR }}/afdo/kernel.afdo"
+          if [ ! -f "$AFDO_PROFILE" ]; then
+             echo "Error: AFDO profile not found at $AFDO_PROFILE"
+              exit 1
+          fi
           
-          # 定义新的优化参数：上下文感知 LTO
-          # -Wno-error: 忽略警告，防止编译中断
-          # -mllvm -thinlto-assume-merged: 开启跨模块函数内联
           export KCFLAGS="-Wno-error -mllvm -thinlto-assume-merged"
           echo "Using KCFLAGS: ${KCFLAGS}"
-        
+          echo "Using KCFLAGS: -Wno-error -fauto-profile=$AFDO_PROFILE"
+          
           # 设置编译参数
           export CC="ccache clang"
+          export KCFLAGS="-Wno-error -fauto-profile=$AFDO_PROFILE"
           export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
           RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
           PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
