@@ -419,69 +419,68 @@ jobs:
           # 注意这里的 '>>' 是追加重定向，确保脚本内容被完整写入
           echo '#!/system/bin/sh' > "$SCRIPT_PATH"
           echo "
-# 在系统完全启动后执行，以获得更稳定的环境
-sleep 60
-
-# --- 函数定义区 ---
-apply_balance_profile() {
-    sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=125
-    sysctl -w vm.swappiness=80
-    sysctl -w vm.vfs_cache_pressure=100
-    log \"已应用 [均衡模式]\"
-}
-
-apply_performance_profile() {
-    sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=150
-    sysctl -w vm.swappiness=40
-    sysctl -w vm.vfs_cache_pressure=50
-    log \"已应用 [性能模式]\"
-}
-
-apply_powersave_profile() {
-    sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=100
-    sysctl -w vm.swappiness=120
-    sysctl -w vm.vfs_cache_pressure=150
-    log \"已应用 [省电模式]\"
-}
-
-log() {
-    echo \"\$(date '+%Y-%m-%d %H:%M:%S') - \$1\" >> /data/local/tmp/dynamic_tuning.log
-}
-
-# --- 主逻辑区 ---
-log \"开始静态初始化...\"
-for queue in /sys/block/*/queue; do
-    if grep -q 'adios' \"\$queue/scheduler\"; then echo \"adios\" > \"\$queue/scheduler\"; fi
-done
-sysctl -w net.ipv4.tcp_fastopen=3
-sysctl -w net.ipv4.tcp_ecn=1
-if grep -q 'teo' /sys/devices/system/cpu/cpuidle/current_governor_ro; then echo \"teo\" > /sys/devices/system/cpu/cpuidle/current_governor; fi
-log \"静态初始化完成。\"
-
-apply_balance_profile
-
-(
-    CURRENT_MODE=\"balance\"
-    GAME_LIST=\"com.tencent.tmgp.sgame|com.miHoYo.GenshinImpact|com.miHoYo.Yuanshen\"
-
-    while true; do
-        SCREEN_ON=\$(dumpsys power | grep \"mWakefulness=\" | grep -o \"Awake\")
-        TOP_APP=\$(dumpsys activity activities | grep -E 'mResumedActivity' | awk '{print \$4}' | cut -d'/' -f1)
-        IS_GAMING=\$(echo \"\$TOP_APP\" | grep -E -q \"\$GAME_LIST\" && echo \"true\" || echo \"false\")
-
-        if [ -z \"\$SCREEN_ON\" ]; then
-            if [ \"\$CURRENT_MODE\" != \"powersave\" ]; then apply_powersave_profile; CURRENT_MODE=\"powersave\"; fi
-        elif [ \"\$IS_GAMING\" = \"true\" ]; then
-            if [ \"\$CURRENT_MODE\" != \"performance\" ]; then apply_performance_profile; CURRENT_MODE=\"performance\"; fi
-        else
-            if [ \"\$CURRENT_MODE\" != \"balance\" ]; then apply_balance_profile; CURRENT_MODE=\"balance\"; fi
-        fi
-        sleep 5
-    done
-) > /dev/null 2>&1 &
-
-log \"动态调优后台进程已启动。\"
-" >> "$SCRIPT_PATH"
+          
+          sleep 60
+          
+          # --- 函数定义区 ---
+          apply_balance_profile() {
+              sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=125
+              sysctl -w vm.swappiness=80
+              sysctl -w vm.vfs_cache_pressure=100
+              log "已应用 [均衡模式]"
+          }
+          
+          apply_performance_profile() {
+              sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=150
+              sysctl -w vm.swappiness=40
+              sysctl -w vm.vfs_cache_pressure=50
+              log "已应用 [性能模式]"
+          }
+          
+          apply_powersave_profile() {
+              sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=100
+              sysctl -w vm.swappiness=120
+              sysctl -w vm.vfs_cache_pressure=150
+              log "已应用 [省电模式]"
+          }
+          
+          log() {
+              echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> /data/local/tmp/dynamic_tuning.log
+          }
+          
+          # --- 主逻辑区 ---
+          log "开始静态初始化..."
+          for queue in /sys/block/*/queue; do
+              if grep -q 'adios' "$queue/scheduler"; then echo "adios" > "$queue/scheduler"; fi
+          done
+          sysctl -w net.ipv4.tcp_fastopen=3
+          sysctl -w net.ipv4.tcp_ecn=1
+          if grep -q 'teo' /sys/devices/system/cpu/cpuidle/current_governor_ro; then echo "teo" > /sys/devices/system/cpu/cpuidle/current_governor; fi
+          log "静态初始化完成。"
+          
+          apply_balance_profile
+          
+          (
+              CURRENT_MODE="balance"
+              GAME_LIST="com.tencent.tmgp.sgame|com.miHoYo.GenshinImpact|com.miHoYo.Yuanshen"
+          
+              while true; do
+                  SCREEN_ON=$(dumpsys power | grep "mWakefulness=" | grep -o "Awake")
+                  TOP_APP=$(dumpsys activity activities | grep -E 'mResumedActivity' | awk '{print $4}' | cut -d'/' -f1)
+                  IS_GAMING=$(echo "$TOP_APP" | grep -E -q "$GAME_LIST" && echo "true" || echo "false")
+          
+                  if [ -z "$SCREEN_ON" ]; then
+                      if [ "$CURRENT_MODE" != "powersave" ]; then apply_powersave_profile; CURRENT_MODE="powersave"; fi
+                  elif [ "$IS_GAMING" = "true" ]; then
+                      if [ "$CURRENT_MODE" != "performance" ]; then apply_performance_profile; CURRENT_MODE="performance"; fi
+                  else
+                      if [ "$CURRENT_MODE" != "balance" ]; then apply_balance_profile; CURRENT_MODE="balance"; fi
+                  fi
+                  sleep 5
+              done
+          ) > /dev/null 2>&1 &
+          
+          log "动态调优后台进程已启动。"
 
           echo "✅ 动态优化脚本创建完成。"
 
