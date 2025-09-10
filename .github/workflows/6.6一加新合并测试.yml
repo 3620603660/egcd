@@ -242,26 +242,6 @@ jobs:
           CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化级别
           CONFIG_MQ_IOSCHED_ADIOS=y
 
-          # 功耗管理和电源优化
-          CONFIG_CPU_FREQ=y # 启用CPU频率缩放
-          CONFIG_CPU_FREQ_STAT=y # 启用CPU频率统计
-          CONFIG_CPU_IDLE=y # 启用CPU空闲状态管理
-          CONFIG_PM_WAKELOCKS=y # 启用电源管理唤醒锁
-          CONFIG_PM_WAKELOCKS_GC=y # 启用唤醒锁垃圾回收
-
-          # 高级调度器特性
-          CONFIG_SCHED_CORE=y # 启用核心调度，适配大小核架构
-          CONFIG_SCHED_MC=y # 启用多核调度优化
-          CONFIG_UCLAMP_TASK=y # 启用任务UCLAMP（利用率上限）
-          CONFIG_SCHED_HRTICK=y # 启用高分辨率定时器
-          CONFIG_CPU_IDLE_GOV_TEO=y # 启用TEO空闲状态调控器
-
-          # 内存管理优化
-          CONFIG_LRU_GEN=y # 启用LRU生成算法，高效内存回收
-          CONFIG_TRANSPARENT_HUGEPAGE=y # 启用透明大页
-          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n # 禁用总是启用透明大页
-          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y # 启用通过MADVISE控制透明大页
-
           EOF
 
           # 禁用defconfig检查
