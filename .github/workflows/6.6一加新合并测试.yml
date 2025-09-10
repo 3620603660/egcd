@@ -371,37 +371,6 @@ jobs:
           rm -f AnyKernel3/push.sh
           cp Image AnyKernel3/
 
-      # ... (前面的步骤，直到 11.1)
-
-      - name: 11.1 准备 AnyKernel3 刷机包
-        run: |
-          cd kernel_workspace/kernel_platform/dist
-          git clone https://github.com/3620603660/AnyKernel3.git AnyKernel3 --depth=1
-          rm -rf AnyKernel3/.git
-          rm -f AnyKernel3/push.sh
-          cp Image AnyKernel3/
-
-      # ====================================================================
-      # ======================= 在这里插入新步骤 =========================
-      # ====================================================================
-      - name: 11.1a 注入动态优化脚本 (Inject Dynamic Tuning Script)
-        run: |
-          # 定义脚本的最终路径
-          AK3_DIR="kernel_workspace/kernel_platform/dist/AnyKernel3"
-          # KernelSU 推荐的启动目录 (如果不存在则创建)
-          SCRIPT_DIR="$AK3_DIR/tools/data/adb/post-fs-data.d"
-          mkdir -p "$SCRIPT_DIR"
-          
-          # 定义脚本文件名和完整路径
-          SCRIPT_NAME="99-dynamic-tuning.sh"
-          SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_NAME"
-
-          echo "✅ 正在创建动态优化脚本于: $SCRIPT_PATH"
-
-          # 使用 cat 和 EOF 来创建多行脚本文件，这比多个 echo 更清晰
-          cat > "$SCRIPT_PATH" << 'EOF'
-# ... (之前的步骤)
-
       - name: 11.1a 注入动态优化脚本 (Inject Dynamic Tuning Script)
         run: |
           # 定义脚本的最终路径
