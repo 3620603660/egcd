@@ -299,11 +299,6 @@ jobs:
          cp -r ./sched_ext/* ./common/kernel/sched
          rm -rf ./sched_ext/.git
 
-      - name: 8.2 拉取afdo
-        run: |
-          cd ${{ env.WORKSPACE_DIR }}
-          git clone https://github.com/PxxPei/afdo.git    
-
       - name: 9.1 安装和设置 Clang 19.0.0 编译器环境
         run: |
           mkdir -p clang19
@@ -323,20 +318,14 @@ jobs:
           export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
           export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
           
-          # 设置AFDO配置文件
-          export AFDO_PROFILE="${{ github.workspace }}/${{ env.WORKSPACE_DIR }}/afdo/kernel.afdo"
-          if [ ! -f "$AFDO_PROFILE" ]; then
-             echo "Error: AFDO profile not found at $AFDO_PROFILE"
-              exit 1
-          fi
-          
-          echo "KERNEL_TIME = $KERNEL_TIME"
-          echo "SOURCE_DATE_EPOCH = $SOURCE_DATE_EPOCH"
-          echo "Using KCFLAGS: -Wno-error -fauto-profile=$AFDO_PROFILE"
-          
+          # 定义新的优化参数：上下文感知 LTO
+          # -Wno-error: 忽略警告，防止编译中断
+          # -mllvm -thinlto-assume-merged: 开启跨模块函数内联
+          export KCFLAGS="-Wno-error -mllvm -thinlto-assume-merged"
+          echo "Using KCFLAGS: ${KCFLAGS}"
+        
           # 设置编译参数
           export CC="ccache clang"
-          export KCFLAGS="-Wno-error -fauto-profile=$AFDO_PROFILE"
           export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
           RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
           PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
@@ -348,7 +337,8 @@ jobs:
           
           # 开始编译
           echo "开始编译内核..."
-          export KBUILD_CFLAGS="-O2 -flto=thin"
+          # 确保 KBUILD_CFLAGS 包含 Polly 和 LTO 设置
+          export KBUILD_CFLAGS="-O2 -fpolly -flto=thin"
           make $MAKE_ARGS gki_defconfig
           make $MAKE_ARGS -j$(nproc)
 
@@ -380,6 +370,137 @@ jobs:
           rm -rf AnyKernel3/.git
           rm -f AnyKernel3/push.sh
           cp Image AnyKernel3/
+
+      # ... (前面的步骤，直到 11.1)
+
+      - name: 11.1 准备 AnyKernel3 刷机包
+        run: |
+          cd kernel_workspace/kernel_platform/dist
+          git clone https://github.com/3620603660/AnyKernel3.git AnyKernel3 --depth=1
+          rm -rf AnyKernel3/.git
+          rm -f AnyKernel3/push.sh
+          cp Image AnyKernel3/
+
+      # ====================================================================
+      # ======================= 在这里插入新步骤 =========================
+      # ====================================================================
+      - name: 11.1a 注入动态优化脚本 (Inject Dynamic Tuning Script)
+        run: |
+          # 定义脚本的最终路径
+          AK3_DIR="kernel_workspace/kernel_platform/dist/AnyKernel3"
+          # KernelSU 推荐的启动目录 (如果不存在则创建)
+          SCRIPT_DIR="$AK3_DIR/tools/data/adb/post-fs-data.d"
+          mkdir -p "$SCRIPT_DIR"
+          
+          # 定义脚本文件名和完整路径
+          SCRIPT_NAME="99-dynamic-tuning.sh"
+          SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_NAME"
+
+          echo "✅ 正在创建动态优化脚本于: $SCRIPT_PATH"
+
+          # 使用 cat 和 EOF 来创建多行脚本文件，这比多个 echo 更清晰
+          cat > "$SCRIPT_PATH" << 'EOF'
+# ... (之前的步骤)
+
+      - name: 11.1a 注入动态优化脚本 (Inject Dynamic Tuning Script)
+        run: |
+          # 定义脚本的最终路径
+          AK3_DIR="kernel_workspace/kernel_platform/dist/AnyKernel3"
+          SCRIPT_DIR="$AK3_DIR/tools/data/adb/post-fs-data.d"
+          mkdir -p "$SCRIPT_DIR"
+          
+          # 定义脚本文件名和完整路径
+          SCRIPT_NAME="99-dynamic-tuning.sh"
+          SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_NAME"
+
+          echo "✅ 正在创建动态优化脚本于: $SCRIPT_PATH"
+
+          # 使用 echo 和 YAML 的多行块语法来创建脚本，并保持缩进
+          # 注意这里的 '>>' 是追加重定向，确保脚本内容被完整写入
+          echo '#!/system/bin/sh' > "$SCRIPT_PATH"
+          echo "
+# 在系统完全启动后执行，以获得更稳定的环境
+sleep 60
+
+# --- 函数定义区 ---
+apply_balance_profile() {
+    sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=125
+    sysctl -w vm.swappiness=80
+    sysctl -w vm.vfs_cache_pressure=100
+    log \"已应用 [均衡模式]\"
+}
+
+apply_performance_profile() {
+    sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=150
+    sysctl -w vm.swappiness=40
+    sysctl -w vm.vfs_cache_pressure=50
+    log \"已应用 [性能模式]\"
+}
+
+apply_powersave_profile() {
+    sysctl -w net.ipv4.tcp_bbr_prober_pacing_rate_factor=100
+    sysctl -w vm.swappiness=120
+    sysctl -w vm.vfs_cache_pressure=150
+    log \"已应用 [省电模式]\"
+}
+
+log() {
+    echo \"\$(date '+%Y-%m-%d %H:%M:%S') - \$1\" >> /data/local/tmp/dynamic_tuning.log
+}
+
+# --- 主逻辑区 ---
+log \"开始静态初始化...\"
+for queue in /sys/block/*/queue; do
+    if grep -q 'adios' \"\$queue/scheduler\"; then echo \"adios\" > \"\$queue/scheduler\"; fi
+done
+sysctl -w net.ipv4.tcp_fastopen=3
+sysctl -w net.ipv4.tcp_ecn=1
+if grep -q 'teo' /sys/devices/system/cpu/cpuidle/current_governor_ro; then echo \"teo\" > /sys/devices/system/cpu/cpuidle/current_governor; fi
+log \"静态初始化完成。\"
+
+apply_balance_profile
+
+(
+    CURRENT_MODE=\"balance\"
+    GAME_LIST=\"com.tencent.tmgp.sgame|com.miHoYo.GenshinImpact|com.miHoYo.Yuanshen\"
+
+    while true; do
+        SCREEN_ON=\$(dumpsys power | grep \"mWakefulness=\" | grep -o \"Awake\")
+        TOP_APP=\$(dumpsys activity activities | grep -E 'mResumedActivity' | awk '{print \$4}' | cut -d'/' -f1)
+        IS_GAMING=\$(echo \"\$TOP_APP\" | grep -E -q \"\$GAME_LIST\" && echo \"true\" || echo \"false\")
+
+        if [ -z \"\$SCREEN_ON\" ]; then
+            if [ \"\$CURRENT_MODE\" != \"powersave\" ]; then apply_powersave_profile; CURRENT_MODE=\"powersave\"; fi
+        elif [ \"\$IS_GAMING\" = \"true\" ]; then
+            if [ \"\$CURRENT_MODE\" != \"performance\" ]; then apply_performance_profile; CURRENT_MODE=\"performance\"; fi
+        else
+            if [ \"\$CURRENT_MODE\" != \"balance\" ]; then apply_balance_profile; CURRENT_MODE=\"balance\"; fi
+        fi
+        sleep 5
+    done
+) > /dev/null 2>&1 &
+
+log \"动态调优后台进程已启动。\"
+" >> "$SCRIPT_PATH"
+
+          echo "✅ 动态优化脚本创建完成。"
+
+          # 自动修改 anykernel.sh 来添加权限设置
+          echo "✅ 正在向 anykernel.sh 注入权限设置..."
+          sed -i "/^## end install/i # set permissions for dynamic tuning script\nset_perm 0 0 0755 /data/adb/post-fs-data.d/$SCRIPT_NAME\n" "$AK3_DIR/anykernel.sh"
+          
+          echo "✅ 权限设置注入完成。"
+
+          # 自动修改 anykernel.sh 来添加权限设置
+          echo "✅ 正在向 anykernel.sh 注入权限设置..."
+          # 使用 sed 在 "## end install" 这行前插入权限设置命令
+          sed -i "/^## end install/i # set permissions for dynamic tuning script\nset_perm 0 0 0755 /data/adb/post-fs-data.d/$SCRIPT_NAME\n" "$AK3_DIR/anykernel.sh"
+          
+          echo "✅ 权限设置注入完成。"
+
+      # ====================================================================
+      # ======================= 新步骤结束 ===============================
+      # ====================================================================
 
       - name: 11.2 上传编译产物到 Artifacts
         uses: actions/upload-artifact@v4
