@@ -170,16 +170,22 @@ jobs:
           patch -p1 -F 3 < 69_hide_stuff.patch
           echo "隐藏应用_patch完成"
          
-      - name: 6.1 添加 SUSFS 及性能优化配置
-        run: |
-          cd ${{ env.KERNEL_PLATFORM_DIR }}
+      - name: 设置内核优化配置                                                      # 定义任务名称
+        run: |                                                                     # 开始执行多行命令
+          cd ${{ env.KERNEL_PLATFORM_DIR }}                                       # 切换到内核平台目录
           
-          # 定义配置文件路径
-          CONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+          # 定义配置文件路径                                                      # 注释：设置配置文件路径变量
+          CONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"                 # 指定内核配置文件路径
           
-          # KernelSU 和 SUSFS 配置
-          cat >> "$CONFIG_FILE" << 'EOF'
+          # 检查配置文件是否存在                                                  # 注释：验证配置文件存在性
+          if [ ! -f "$CONFIG_FILE" ]; then                                        # 条件判断文件是否存在
+            echo "Error: 配置文件 $CONFIG_FILE 不存在"                            # 输出错误信息
+            exit 1                                                                # 退出并返回错误代码
+          fi                                                                      # 结束条件判断
           
+          # 添加优化配置                                                          # 注释：开始追加配置内容
+          cat >> "$CONFIG_FILE" << 'EOF'           # 使用here文档追加内容到配置文件
+         
           # KernelSU 配置
 
           CONFIG_KSU=y
@@ -201,70 +207,76 @@ jobs:
           CONFIG_KSU_SUSFS_ENABLE_LOG=y
           CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
           CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-
-          CONFIG_LTO_CLANG=y
-          CONFIG_LTO_CLANG_THIN=y
-          CONFIG_LTO_POLLY=y
-
-          # 文件系统与I/O
-          CONFIG_CRYPTO_LZ4=y # 启用LZ4加密/压缩
-          CONFIG_CRYPTO_LZ4HC=y # 启用LZ4HC加密/压缩
-          CONFIG_CRYPTO_LZ4KD=y # 启用LZ4KD加密/压缩
-          CONFIG_CRYPTO_ZSTD=y # 启用ZSTD加密/压缩
-          CONFIG_F2FS_FS_LZ4=y # F2FS文件系统支持LZ4压缩
-          CONFIG_F2FS_FS_LZ4HC=y # F2FS文件系统支持LZ4HC压缩
-          CONFIG_F2FS_FS_ZSTD=y # F2FS文件系统支持ZSTD压缩
           
-          # 网络性能优化
-          CONFIG_BQL=y # 启用BQL (Byte Queue Limits)
-          CONFIG_INET=y # 启用IPv4网络协议
-          CONFIG_IPV6=y # 启用IPv6网络协议
-          CONFIG_NET=y # 启用网络支持
-          CONFIG_NET_SCHED=y # 启用网络调度
-          CONFIG_NET_SCH_CAKE=y # 启用CAKE网络调度器
-          CONFIG_NET_SCH_FQ=y # 启用FQ网络调度器
-          CONFIG_NET_SCH_FQ_CODEL=y # 启用FQ_CODEL网络调度器
-          CONFIG_DEFAULT_NET_SCH="cake" # 默认网络调度器
-          CONFIG_DEFAULT_TCP_CONG="bbr" # 默认TCP拥塞控制算法
-          CONFIG_TCP_CONG_BBR=y # 启用BBR TCP拥塞控制
-          CONFIG_TCP_CONG_BIC=n # 禁用BIC TCP拥塞控制
-          CONFIG_TCP_CONG_CUBIC=n # 禁用CUBIC TCP拥塞控制
-          CONFIG_TCP_CONG_HTCP=n # 禁用HTCP TCP拥塞控制
-          CONFIG_TCP_CONG_WESTWOOD=n # 禁用WESTWOOD TCP拥塞控制
-          CONFIG_TCP_FASTOPEN=y # 启用TCP Fast Open
-          CONFIG_TCP_SACK=y # 启用TCP SACK
-          CONFIG_TCP_TIMESTAMPS=y # 启用TCP时间戳
-
-          # ADIOS 和 O2 优化配置
-          CONFIG_IO_URING=y # 启用io_uring，用于现代异步I/O操作
-          CONFIG_BLK_MQ=y
-          CONFIG_BLK_MQ_PCI=y # 启用多队列块层PCI支持
-          CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化级别
-          CONFIG_MQ_IOSCHED_ADIOS=y
-          CONFIG_DEFAULT_DEADLINE_IOSCHED="adios"
-
-          CONFIG_CPU_FREQ=y
-          CONFIG_CPU_FREQ_STAT=y
-          CONFIG_CPU_IDLE=y
-          CONFIG_PM_WAKELOCKS=y
-          CONFIG_PM_WAKELOCKS_GC=y
-          CONFIG_SCHED_CORE=y
-          CONFIG_SCHED_MC=y
-          CONFIG_UCLAMP_TASK=y
-          CONFIG_SCHED_HRTICK=y
-          CONFIG_CPU_IDLE_GOV_TEO=y
-          CONFIG_LRU_GEN=y
-          CONFIG_TRANSPARENT_HUGEPAGE=y
-          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n
-          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
-
-          EOF
-
-          # 禁用defconfig检查
-          sed -i 's/check_defconfig//' ./common/build.config.gki
+          # CPU和电源管理                                                        # 注释：CPU相关配置节
+          CONFIG_CPU_FREQ=y                                                       # 启用CPU频率调节
+          CONFIG_CPU_FREQ_STAT=y                                                  # 启用CPU频率统计
+          CONFIG_CPU_IDLE=y                                                       # 启用CPU空闲状态管理
+          CONFIG_PM_WAKELOCKS=y                                                   # 启用电源管理唤醒锁
+          CONFIG_PM_WAKELOCKS_GC=y                                                # 启用唤醒锁垃圾回收
+          CONFIG_SCHED_CORE=y                                                     # 启用核心调度功能
+          CONFIG_SCHED_MC=y                                                       # 启用多核调度
+          CONFIG_UCLAMP_TASK=y                                                    # 启用任务利用率钳制
+          CONFIG_SCHED_HRTICK=y                                                   # 启用高精度调度时钟
+          CONFIG_CPU_IDLE_GOV_TEO=y                                               # 启用TEO空闲状态调控器
           
-          # 提交更改
-          git add -A && git commit -a -m "BUILD Kernel" || true
+          # 内存管理                                                              # 注释：内存管理配置节
+          CONFIG_LRU_GEN=y                                                        # 启用新一代LRU算法
+          CONFIG_TRANSPARENT_HUGEPAGE=y                                           # 启用透明大页支持
+          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n                                    # 禁用始终使用大页
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y                                   # 启用madvise大页建议
+          
+          # 网络性能优化 (BBR3)                                                   # 注释：网络优化配置节
+          CONFIG_BQL=y                                                            # 启用字节队列限制
+          CONFIG_INET=y                                                           # 启用IPv4协议支持
+          CONFIG_IPV6=y                                                           # 启用IPv6协议支持
+          CONFIG_NET=y                                                            # 启用网络支持
+          CONFIG_NET_SCHED=y                                                      # 启用网络流量调度
+          CONFIG_NET_SCH_CAKE=y                                                   # 启用CAKE队列管理
+          CONFIG_NET_SCH_FQ=y                                                     # 启用公平队列
+          CONFIG_NET_SCH_FQ_CODEL=y                                               # 启用FQ_CODEL队列管理
+          CONFIG_DEFAULT_NET_SCH="cake"                                           # 设置默认网络调度器为CAKE
+          CONFIG_DEFAULT_TCP_CONG="bbr"                                           # 设置默认TCP拥塞控制为BBR
+          CONFIG_TCP_CONG_BBR=y                                                   # 启用BBR拥塞控制算法
+          CONFIG_TCP_CONG_BIC=n                                                   # 禁用BIC拥塞控制算法
+          CONFIG_TCP_CONG_CUBIC=n                                                 # 禁用CUBIC拥塞控制算法
+          CONFIG_TCP_CONG_HTCP=n                                                  # 禁用HTCP拥塞控制算法
+          CONFIG_TCP_CONG_WESTWOOD=n                                              # 禁用Westwood拥塞控制算法
+          CONFIG_TCP_FASTOPEN=y                                                   # 启用TCP快速打开
+          CONFIG_TCP_SACK=y                                                       # 启用TCP选择性确认
+          CONFIG_TCP_TIMESTAMPS=y                                                 # 启用TCP时间戳
+          
+          # ADIOS和O2优化配置                                                     # 注释：IO优化配置节
+          CONFIG_IO_URING=y                                                       # 启用io_uring异步IO接口
+          CONFIG_BLK_MQ=y                                                         # 启用多队列块设备
+          CONFIG_BLK_MQ_PCI=y                                                     # 启用PCI多队列支持
+          CONFIG_O2_OPTIMIZATION=y                                                # 启用O2级别优化
+          CONFIG_MQ_IOSCHED_ADIOS=y                                               # 启用ADIOS IO调度器
+          
+          # 文件系统压缩支持                                                      # 注释：压缩算法配置节
+          CONFIG_CRYPTO_LZ4=y                                                     # 启用LZ4压缩算法
+          CONFIG_CRYPTO_LZ4HC=y                                                   # 启用LZ4HC高压缩比算法
+          CONFIG_CRYPTO_LZ4KD=y                                                   # 启用LZ4KD压缩算法
+          CONFIG_CRYPTO_ZSTD=y                                                    # 启用ZSTD压缩算法
+          CONFIG_F2FS_FS_LZ4=y                                                    # 启用F2FS文件系统LZ4支持
+          CONFIG_F2FS_FS_LZ4HC=y                                                  # 启用F2FS文件系统LZ4HC支持
+          CONFIG_F2FS_FS_ZSTD=y                                                   # 启用F2FS文件系统ZSTD支持
+          
+          # 编译优化                                                              # 注释：编译优化配置节
+          CONFIG_LTO_CLANG=y                                                      # 启用Clang LTO链接时优化
+          CONFIG_LTO_CLANG_THIN=y                                                 # 启用Clang ThinLTO优化
+          CONFIG_LTO_POLLY=y                                                      # 启用Polly循环优化
+          
+          EOF                                                                     # 结束here文档
+          
+          # 禁用defconfig检查                                                     # 注释：修改构建配置
+          sed -i 's/check_defconfig//' ./common/build.config.gki                  # 移除defconfig检查步骤
+          
+          # 提交更改                                                              # 注释：提交配置更改
+          git add -A && git commit -a -m "BUILD Kernel with optimizations" || true # 添加并提交所有更改，忽略错误
+          
+          # 日志记录                                                              # 注释：输出完成信息
+          echo "✅ 内核优化配置已完成"                                            # 显示成功完成消息
 
       - name: 7.1 修改内核版本显示名称
         run: |
