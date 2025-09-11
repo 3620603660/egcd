@@ -241,6 +241,22 @@ jobs:
           CONFIG_BLK_MQ_PCI=y # 启用多队列块层PCI支持
           CONFIG_O2_OPTIMIZATION=y # 明确启用O2优化级别
           CONFIG_MQ_IOSCHED_ADIOS=y
+          CONFIG_DEFAULT_DEADLINE_IOSCHED="adios"
+
+          CONFIG_CPU_FREQ=y
+          CONFIG_CPU_FREQ_STAT=y
+          CONFIG_CPU_IDLE=y
+          CONFIG_PM_WAKELOCKS=y
+          CONFIG_PM_WAKELOCKS_GC=y
+          CONFIG_SCHED_CORE=y
+          CONFIG_SCHED_MC=y
+          CONFIG_UCLAMP_TASK=y
+          CONFIG_SCHED_HRTICK=y
+          CONFIG_CPU_IDLE_GOV_TEO=y
+          CONFIG_LRU_GEN=y
+          CONFIG_TRANSPARENT_HUGEPAGE=y
+          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
 
           EOF
 
