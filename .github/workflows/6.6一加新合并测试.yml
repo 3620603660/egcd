@@ -208,23 +208,37 @@ jobs:
           CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
           CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
           
-          # CPU和电源管理                                                        # 注释：CPU相关配置节
-          CONFIG_CPU_FREQ=y                                                       # 启用CPU频率调节
-          CONFIG_CPU_FREQ_STAT=y                                                  # 启用CPU频率统计
-          CONFIG_CPU_IDLE=y                                                       # 启用CPU空闲状态管理
-          CONFIG_PM_WAKELOCKS=y                                                   # 启用电源管理唤醒锁
-          CONFIG_PM_WAKELOCKS_GC=y                                                # 启用唤醒锁垃圾回收
-          CONFIG_SCHED_CORE=y                                                     # 启用核心调度功能
-          CONFIG_SCHED_MC=y                                                       # 启用多核调度
-          CONFIG_UCLAMP_TASK=y                                                    # 启用任务利用率钳制
-          CONFIG_SCHED_HRTICK=y                                                   # 启用高精度调度时钟
-          CONFIG_CPU_IDLE_GOV_TEO=y                                               # 启用TEO空闲状态调控器
+          # CPU调速器 (CPU Governor) 细化配置
+          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
+          
+          # 热插拔 (CPU Hotplug) 策略与集群管理
+          CONFIG_CPU_HOTPLUG=y
+          CONFIG_CPU_IDLE_STATE_RESIDENCY=y          
+          CONFIG_CPU_IDLE_TIME_IN_ACCOUNTING=y
+
+          # 唤醒锁 (Wake Lock) 优化
+          CONFIG_PM_WAKELOCKS=y
+          CONFIG_PM_WAKELOCKS_GC=y
+
+          # sched_ext 框架支持
+          CONFIG_SCHED_CLASS_EXT=y
+
+          # UCLAMP_TASK 的精细控制
+          CONFIG_UCLAMP_TASK=y
+
+          # ZRAM 配置与算法选择
+          CONFIG_ZRAM=y
+          CONFIG_ZRAM_LZ4=y
+          CONFIG_ZRAM_ZSTD=y
+
+          # 低内存杀手 (Low Memory Killer, LMK) 策略调优
+          CONFIG_ANDROID_LOW_MEMORY_KILLER=y
           
           # 内存管理                                                              # 注释：内存管理配置节
           CONFIG_LRU_GEN=y                                                        # 启用新一代LRU算法
           CONFIG_TRANSPARENT_HUGEPAGE=y                                           # 启用透明大页支持
           CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n                                    # 禁用始终使用大页
-          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y                                   # 启用madvise大页建议
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y          # 启用madvise大页建议
           
           # 网络性能优化 (BBR3)                                                   # 注释：网络优化配置节
           CONFIG_BQL=y                                                            # 启用字节队列限制
