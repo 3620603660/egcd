@@ -186,100 +186,94 @@ jobs:
           # 添加优化配置                                                          # 注释：开始追加配置内容
           cat >> "$CONFIG_FILE" << 'EOF'           # 使用here文档追加内容到配置文件
          
-          # KernelSU 配置
+          # 优化后的一加Ace5 Pro (骁龙8e, Android 15, Kernel 6.6.102) 内核配置
 
-          CONFIG_KSU=y
-          
-          CONFIG_KSU_SUSFS_SUS_SU=n
-          CONFIG_KSU_MANUAL_HOOK=y
-          
-          CONFIG_KSU_SUSFS=y
-          CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
-          CONFIG_KSU_SUSFS_SUS_PATH=y
-          CONFIG_KSU_SUSFS_SUS_MOUNT=y
-          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y
-          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y
-          CONFIG_KSU_SUSFS_SUS_KSTAT=y
-          CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n
-          CONFIG_KSU_SUSFS_TRY_UMOUNT=y
-          CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y
-          CONFIG_KSU_SUSFS_SPOOF_UNAME=y
-          CONFIG_KSU_SUSFS_ENABLE_LOG=y
-          CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
-          CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-          
-          # CPU调速器 (CPU Governor) 细化配置
-          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
-          
-          # 热插拔 (CPU Hotplug) 策略与集群管理
-          CONFIG_CPU_HOTPLUG=y
-          CONFIG_CPU_IDLE_STATE_RESIDENCY=y          
-          CONFIG_CPU_IDLE_TIME_IN_ACCOUNTING=y
+          # KernelSU 配置 (保持不变)
+          CONFIG_KSU=y  # KernelSU 主开关
+          CONFIG_KSU_SUSFS_SUS_SU=n  # 禁用 SU 功能
+          CONFIG_KSU_MANUAL_HOOK=y  # 手动 Hook 模式
+          CONFIG_KSU_SUSFS=y  # 启用 SUSFS
+          CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y  # 启用 Magic Mount
+          CONFIG_KSU_SUSFS_SUS_PATH=y  # 启用 SUS 路径
+          CONFIG_KSU_SUSFS_SUS_MOUNT=y  # 启用 SUS Mount
+          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y  # 自动添加默认 KSU Mount
+          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y  # 自动添加 SUS Bind Mount
+          CONFIG_KSU_SUSFS_SUS_KSTAT=y  # 启用 SUS KSTAT
+          CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n  # 禁用 SUS OverlayFS
+          CONFIG_KSU_SUSFS_TRY_UMOUNT=y  # 启用尝试卸载
+          CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y  # 自动添加 Bind Mount 尝试卸载
+          CONFIG_KSU_SUSFS_SPOOF_UNAME=y  # 欺骗 Unam
+          CONFIG_KSU_SUSFS_ENABLE_LOG=y  # 启用日志
+          CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y  # 隐藏 KSU SUSFS 符号
+          CONFIG_KSU_SUSFS_OPEN_REDIRECT=y  # 启用打开重定向
 
-          # 唤醒锁 (Wake Lock) 优化
-          CONFIG_PM_WAKELOCKS=y
-          CONFIG_PM_WAKELOCKS_GC=y
+          # CPU和电源管理
+          CONFIG_CPU_FREQ=y  # CPU 频率调节
+          CONFIG_CPU_FREQ_STAT=y  # CPU 频率统计
+          CONFIG_CPU_IDLE=y  # CPU 空闲管理
+          CONFIG_PM_WAKELOCKS=y  # 电源管理唤醒锁
+          CONFIG_PM_WAKELOCKS_GC=y  # 唤醒锁垃圾回收
+          CONFIG_SCHED_CORE=y  # 核心调度器
+          CONFIG_SCHED_MC=y  # 多核调度器
+          CONFIG_UCLAMP_TASK=y  # 任务能量感知调度
+          CONFIG_SCHED_HRTICK=y  # 高精度定时器调度
+          CONFIG_CPU_IDLE_GOV_TEO=y  # CPU 空闲调速器 TEO
+          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y  #CPU调速器细化配置
+          CONFIG_CPU_HOTPLUG=y  #热插拔策略与集群管理
+          CONFIG_CPU_IDLE_STATE_RESIDENCY=y  # CPU 空闲状态驻留
+          CONFIG_CPU_IDLE_TIME_IN_ACCOUNTING=y  # CPU 空闲时间统计
+          CONFIG_SCHED_CLASS_EXT=y  #sched_ext 框架支持
 
-          # sched_ext 框架支持
-          CONFIG_SCHED_CLASS_EXT=y
+          # 内存管理
+          CONFIG_LRU_GEN=y  # LRU 页面回收算法
+          CONFIG_TRANSPARENT_HUGEPAGE=y  # 透明大页
+          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n  # 始终启用透明大页
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y  # 通过 madvise 启用透明大页
+          CONFIG_ZRAM=y  #ZRAM 配置
+          CONFIG_ZRAM_LZ4=y  # ZRAM LZ4 压缩算法
+          CONFIG_ZRAM_ZSTD=y  # ZRAM ZSTD 压缩算法
+          CONFIG_ANDROID_LOW_MEMORY_KILLER=y  #低内存杀手 (LMK) 策略调优
 
-          # UCLAMP_TASK 的精细控制
-          CONFIG_UCLAMP_TASK=y
+          # 网络性能优化 (BBR3)
+          CONFIG_BQL=y  # 字节队列限制
+          CONFIG_INET=y  # IPv4 协议栈
+          CONFIG_IPV6=y  # IPv6 协议栈
+          CONFIG_NET=y  # 网络支持
+          CONFIG_NET_SCHED=y  # 网络调度器
+          CONFIG_NET_SCH_CAKE=y  # CAKE 网络调度算法
+          CONFIG_NET_SCH_FQ=y  # 公平队列网络调度
+          CONFIG_NET_SCH_FQ_CODEL=y  # FQ_Codel 网络调度算法
+          CONFIG_DEFAULT_NET_SCH="cake"  # 默认网络调度器
+          CONFIG_DEFAULT_TCP_CONG="bbr"  # 默认 TCP 拥塞控制算法
+          CONFIG_TCP_CONG_BBR=y  # TCP BBR 拥塞控制
+          CONFIG_TCP_CONG_BIC=n  # TCP BIC 拥塞控制
+          CONFIG_TCP_CONG_CUBIC=n  # TCP CUBIC 拥塞控制
+          CONFIG_TCP_CONG_HTCP=n  # TCP HTCP 拥塞控制
+          CONFIG_TCP_CONG_WESTWOOD=n  # TCP Westwood 拥塞控制
+          CONFIG_TCP_FASTOPEN=y  # TCP Fast Open
+          CONFIG_TCP_SACK=y  # TCP 选择性确认
+          CONFIG_TCP_TIMESTAMPS=y  # TCP 时间戳
 
-          # ZRAM 配置与算法选择
-          CONFIG_ZRAM=y
-          CONFIG_ZRAM_LZ4=y
-          CONFIG_ZRAM_ZSTD=y
+          # ADIOS和O2优化配置
+          CONFIG_IO_URING=y  # 异步 I/O 接口 io_uring
+          CONFIG_BLK_MQ=y  # 块多队列 I/O
+          CONFIG_BLK_MQ_PCI=y  # PCI 块多队列 I/O
+          CONFIG_O2_OPTIMIZATION=y  # O2 优化
+          CONFIG_MQ_IOSCHED_ADIOS=y  # ADIOS I/O 调度器
 
-          # 低内存杀手 (Low Memory Killer, LMK) 策略调优
-          CONFIG_ANDROID_LOW_MEMORY_KILLER=y
-          
-          # 内存管理                                                              # 注释：内存管理配置节
-          CONFIG_LRU_GEN=y                                                        # 启用新一代LRU算法
-          CONFIG_TRANSPARENT_HUGEPAGE=y                                           # 启用透明大页支持
-          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n                                    # 禁用始终使用大页
-          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y          # 启用madvise大页建议
-          
-          # 网络性能优化 (BBR3)                                                   # 注释：网络优化配置节
-          CONFIG_BQL=y                                                            # 启用字节队列限制
-          CONFIG_INET=y                                                           # 启用IPv4协议支持
-          CONFIG_IPV6=y                                                           # 启用IPv6协议支持
-          CONFIG_NET=y                                                            # 启用网络支持
-          CONFIG_NET_SCHED=y                                                      # 启用网络流量调度
-          CONFIG_NET_SCH_CAKE=y                                                   # 启用CAKE队列管理
-          CONFIG_NET_SCH_FQ=y                                                     # 启用公平队列
-          CONFIG_NET_SCH_FQ_CODEL=y                                               # 启用FQ_CODEL队列管理
-          CONFIG_DEFAULT_NET_SCH="cake"                                           # 设置默认网络调度器为CAKE
-          CONFIG_DEFAULT_TCP_CONG="bbr"                                           # 设置默认TCP拥塞控制为BBR
-          CONFIG_TCP_CONG_BBR=y                                                   # 启用BBR拥塞控制算法
-          CONFIG_TCP_CONG_BIC=n                                                   # 禁用BIC拥塞控制算法
-          CONFIG_TCP_CONG_CUBIC=n                                                 # 禁用CUBIC拥塞控制算法
-          CONFIG_TCP_CONG_HTCP=n                                                  # 禁用HTCP拥塞控制算法
-          CONFIG_TCP_CONG_WESTWOOD=n                                              # 禁用Westwood拥塞控制算法
-          CONFIG_TCP_FASTOPEN=y                                                   # 启用TCP快速打开
-          CONFIG_TCP_SACK=y                                                       # 启用TCP选择性确认
-          CONFIG_TCP_TIMESTAMPS=y                                                 # 启用TCP时间戳
-          
-          # ADIOS和O2优化配置                                                     # 注释：IO优化配置节
-          CONFIG_IO_URING=y                                                       # 启用io_uring异步IO接口
-          CONFIG_BLK_MQ=y                                                         # 启用多队列块设备
-          CONFIG_BLK_MQ_PCI=y                                                     # 启用PCI多队列支持
-          CONFIG_O2_OPTIMIZATION=y                                                # 启用O2级别优化
-          CONFIG_MQ_IOSCHED_ADIOS=y                                               # 启用ADIOS IO调度器
-          
-          # 文件系统压缩支持                                                      # 注释：压缩算法配置节
-          CONFIG_CRYPTO_LZ4=y                                                     # 启用LZ4压缩算法
-          CONFIG_CRYPTO_LZ4HC=y                                                   # 启用LZ4HC高压缩比算法
-          CONFIG_CRYPTO_LZ4KD=y                                                   # 启用LZ4KD压缩算法
-          CONFIG_CRYPTO_ZSTD=y                                                    # 启用ZSTD压缩算法
-          CONFIG_F2FS_FS_LZ4=y                                                    # 启用F2FS文件系统LZ4支持
-          CONFIG_F2FS_FS_LZ4HC=y                                                  # 启用F2FS文件系统LZ4HC支持
-          CONFIG_F2FS_FS_ZSTD=y                                                   # 启用F2FS文件系统ZSTD支持
-          
-          # 编译优化                                                              # 注释：编译优化配置节
-          CONFIG_LTO_CLANG=y                                                      # 启用Clang LTO链接时优化
-          CONFIG_LTO_CLANG_THIN=y                                                 # 启用Clang ThinLTO优化
-          CONFIG_LTO_POLLY=y                                                      # 启用Polly循环优化
+          # 文件系统压缩支持
+          CONFIG_CRYPTO_LZ4=y  # LZ4 加密算法
+          CONFIG_CRYPTO_LZ4HC=y  # LZ4HC 加密算法
+          CONFIG_CRYPTO_LZ4KD=y  # LZ4KD 加密算法
+          CONFIG_CRYPTO_ZSTD=y  # ZSTD 加密算法
+          CONFIG_F2FS_FS_LZ4=y  # F2FS 文件系统 LZ4 压缩
+          CONFIG_F2FS_FS_LZ4HC=y  # F2FS 文件系统 LZ4HC 压缩
+          CONFIG_F2FS_FS_ZSTD=y  # F2FS 文件系统 ZSTD 压缩
+
+          # 编译优化
+          CONFIG_LTO_CLANG=y  # Clang 链接时优化
+          CONFIG_LTO_CLANG_THIN=y  # Clang Thin LTO
+          CONFIG_LTO_POLLY=y  # LLVM Polly 优化                                                     # 启用Polly循环优化
           
           EOF                                                                     # 结束here文档
           
