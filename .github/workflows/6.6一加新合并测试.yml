@@ -262,10 +262,6 @@ jobs:
           CONFIG_MQ_IOSCHED_ADIOS=y  # ADIOS I/O 调度器
 
           # 文件系统压缩支持
-          CONFIG_CRYPTO_LZ4=y  # LZ4 加密算法
-          CONFIG_CRYPTO_LZ4HC=y  # LZ4HC 加密算法
-          CONFIG_CRYPTO_LZ4KD=y  # LZ4KD 加密算法
-          CONFIG_CRYPTO_ZSTD=y  # ZSTD 加密算法
           CONFIG_F2FS_FS_LZ4=y  # F2FS 文件系统 LZ4 压缩
           CONFIG_F2FS_FS_LZ4HC=y  # F2FS 文件系统 LZ4HC 压缩
           CONFIG_F2FS_FS_ZSTD=y  # F2FS 文件系统 ZSTD 压缩
