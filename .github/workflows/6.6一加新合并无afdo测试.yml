@@ -311,17 +311,17 @@ jobs:
 
       - name: 9.1 安装和设置 Clang 19.0.0 编译器环境  # 优化: 增强验证，支持未来更新
         run: |
-          mkdir -p clang-r547379  # 若更新，替换为新revision如clang-r55xxxx
-          cd clang-r547379
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+/refs/heads/main/clang-r547379/clang-r547379.tar.gz -O clang-r547379.tar.gz
+          mkdir -p clang-r550146  # 若更新，替换为新revision如clang-r55xxxx
+          cd clang-r550146
+          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+/refs/heads/main/clang-r550146/clang-r547379.tar.gz -O clang-r550146.tar.gz
           # 优化: 验证下载完整性
-          if [ ! -f clang-r547379.tar.gz ] || [ $(stat -c%s clang-r547379.tar.gz) -lt 100000000 ]; then
+          if [ ! -f clang-r550146.tar.gz ] || [ $(stat -c%s clang-r550146.tar.gz) -lt 100000000 ]; then
             echo "Error: Clang下载失败或文件无效，尝试备用URL"
-            wget -q https://storage.googleapis.com/android-clang/prebuilts/clang-r547379.tar.gz -O clang-r547379.tar.gz || exit 1  # fallback
+            wget -q https://storage.googleapis.com/android-clang/prebuilts/clang-r550146.tar.gz -O clang-r550146.tar.gz || exit 1  # fallback
           fi
-          tar -zxf clang-r547379.tar.gz || { echo "Error: 提取失败"; exit 1; }
-          echo "CLANG_PATH=${{ github.workspace }}/clang-r547379/bin" >> $GITHUB_ENV
-          echo "✅ Clang r547379 (19.0.0) 安装完成，可兼容6.6.100"
+          tar -zxf clang-r550146.tar.gz || { echo "Error: 提取失败"; exit 1; }
+          echo "CLANG_PATH=${{ github.workspace }}/clang-r550146/bin" >> $GITHUB_ENV
+          echo "✅ Clang r550146 (19.0.0) 安装完成，可兼容6.6.100"
 
       - name: 10.1 编译内核
         run: |
