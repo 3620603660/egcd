@@ -329,12 +329,11 @@ jobs:
           export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
 
           # 设置编译参数 (优化: 针对骁龙8 Elite添加-march)
-          export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
           RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
           PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-          LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
-          echo "Using SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
-         
+          LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all || error "失败"
+          
           # 进入编译目录
           cd ${{ env.KERNEL_PLATFORM_DIR }}/common
           rm -rf out
@@ -342,7 +341,7 @@ jobs:
           
           # 开始编译
           echo "开始编译内核..."
-          export KBUILD_CFLAGS="-O3 -fpolly -flto=thin -march=armv8.2-a"  # 优化: armv8.2针对SM8750
+          export KBUILD_CFLAGS="-O2 -fpolly -flto=thin -march=armv8.2-a"  # 优化: armv8.2针对SM8750
           make $MAKE_ARGS gki_defconfig
           make $MAKE_ARGS -j$(nproc)
 
