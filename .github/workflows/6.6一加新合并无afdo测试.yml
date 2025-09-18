@@ -17,7 +17,7 @@ on:
       KERNEL_BASE_VERSION:
         description: "内核基础版本,例如 6.6.100 (默认: 6.6.100)"
         required: true
-        default: '6.6.100'
+        default: '6.6'
       CUSTOM_KERNEL_NAME_TAG:
         description: "自定义内核名称标识,将附加到内核版本号后"
         required: true
