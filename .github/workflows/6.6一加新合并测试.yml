@@ -258,7 +258,6 @@ jobs:
           CONFIG_IO_URING=y  # 异步 I/O 接口 io_uring
           CONFIG_BLK_MQ=y  # 块多队列 I/O
           CONFIG_BLK_MQ_PCI=y  # PCI 块多队列 I/O
-          CONFIG_O2_OPTIMIZATION=y  # O2 优化
           CONFIG_MQ_IOSCHED_ADIOS=y  # ADIOS I/O 调度器
 
           # 文件系统压缩支持
@@ -368,7 +367,7 @@ jobs:
           # 开始编译
           echo "开始编译内核..."
           # 确保 KBUILD_CFLAGS 包含 Polly 和 LTO 设置
-          export KBUILD_CFLAGS="-O2 -fpolly -flto=thin"
+          export KBUILD_CFLAGS="-fpolly -flto=thin"
           make $MAKE_ARGS gki_defconfig
           make $MAKE_ARGS -j$(nproc)
 
