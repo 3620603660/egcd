@@ -1,4 +1,4 @@
-name: ace5pro_kernel_6.6合并100测试
+name: ace5pro_kernel_6.6合并100无afdo测试
 on:
   workflow_dispatch:
     inputs:
