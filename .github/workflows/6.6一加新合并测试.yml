@@ -270,6 +270,13 @@ jobs:
           CONFIG_LTO_CLANG=y  # Clang 链接时优化
           CONFIG_LTO_CLANG_THIN=y  # Clang Thin LTO
           CONFIG_LTO_POLLY=y  # LLVM Polly 优化                                                     # 启用Polly循环优化
+
+          # Ace 5 Pro特定优化 (6.6.100兼容，优化: 添加NVMe target)
+          CONFIG_NVME_MULTIPATH=y  
+          CONFIG_NVME_TARGET=y  # 新增: 提升存储目标支持
+          CONFIG_BT_QCA=y  
+          CONFIG_ARM64_SME=n  
+          CONFIG_PM_DOMAIN_CPU_GOV=y
           
           EOF                                                                     # 结束here文档
           
