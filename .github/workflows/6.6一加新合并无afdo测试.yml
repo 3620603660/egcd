@@ -168,6 +168,31 @@ jobs:
           echo "正在打隐藏应用补丁"
           patch -p1 -F 3 < 69_hide_stuff.patch || { echo "Hide patch failed"; exit 1; }
           echo "隐藏应用_patch完成"
+
+      - name: 🔧 Cache HMBird patch (缓存HMBird补丁)
+        uses: actions/cache@v3
+        with:
+          path: ${{ runner.temp }}/hmbird_patch.c
+          key: hmbird-patch-v1
+          restore-keys: |
+            hmbird-patch-v1
+            
+      
+      - name: 🔧 Apply HMBird GKI patch (写入单Boot开机补丁)
+        run: |
+          PATCH_FILE="${{ runner.temp }}/hmbird_patch.c"
+          if [ ! -f "$PATCH_FILE" ]; then
+            echo "下载HMBird补丁..."
+            cp "${GITHUB_WORKSPACE}/hmbird_patch.c" "$PATCH_FILE"
+          fi
+          
+          cd kernel_workspace/kernel_platform/common/drivers
+          cp "$PATCH_FILE" hmbird_patch.c
+          
+          if ! grep -q "hmbird_patch.o" Makefile; then
+            echo "obj-y += hmbird_patch.o" >> Makefile
+          fi
+          echo "HMBird补丁应用完成"
          
       - name: 设置内核优化配置
         run: |  
@@ -304,13 +329,6 @@ jobs:
           export SOURCE_DATE_EPOCH=$(date -d "${{ github.event.inputs.BUILD_TIMESTAMP }}" +%s)
           echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
       
-      - name: Add sched_ext
-        run: |
-         cd kernel_workspace/kernel_platform/
-         git clone https://github.com/3620603660/sched_ext.git || true
-         cp -r ./sched_ext/* ./common/kernel/sched || true
-         rm -rf ./sched_ext/.git
-
       - name: 9.1 安装和设置 Clang 19.0.0 编译器环境
         run: |
           mkdir -p clang19
