@@ -10,7 +10,7 @@ on:
       DEVICE_CONFIG:
         description: "设备配置文件名称，例如 oneplus_ace5_pro (默认: oneplus_ace5_pro)"
         required: true
-        default: 'oneplus_ace5_pro'
+        default: 'oneplus_ace5_pro_pro'
       ANDROID_TARGET_VERSION:
         description: "目标Android版本，例如 android15 (默认: android15)"
         required: true
@@ -85,7 +85,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-v3_pro
+          key: ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-v2_pro_pro
           restore-keys: |
             ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-ccache-
             ${{ runner.os }}-${{ github.repository }}-ccache-
