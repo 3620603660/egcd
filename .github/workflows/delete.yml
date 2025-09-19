@@ -7,12 +7,7 @@ on:
         type: choice
         description: '清理的工作流名称'
         required: true
-        default: 'Build OnePlus_SukiSU Ultra All'
-        options:
-          - Build OnePlus_SukiSU Ultra All
-          - CAll Build Start UP
-          - Build TEST
-          - Build TEST2
+        default: ''
       count:
         description: '最多访问的运行次数'
         required: false
