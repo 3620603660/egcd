@@ -150,6 +150,8 @@ jobs:
          cp ../boot/1.patch ./common/
          cd ./common
          PATCH_FILE=50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_TARGET_VERSION }}-${{ github.event.inputs.KERNEL_BASE_VERSION }}.patch
+         # sed -i 's/-32,12 +32,38/-32,11 +32,37/g' "$PATCH_FILE"
+         # sed -i '/#include <trace\/hooks\/fs.h>/d' "$PATCH_FILE"
          if [[ -f "$PATCH_FILE" ]]; then
          patch -p1 < "$PATCH_FILE" || true
          fi
