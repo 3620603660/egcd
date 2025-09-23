@@ -286,6 +286,12 @@ jobs:
           # 硬件加密
           CONFIG_CRYPTO_HW=y
           CONFIG_CRYPTO_DEV_QCE=y
+
+          EOF
+          
+          sed -i 's/check_defconfig//' ./common/build.config.gki
+          git add -A && git commit -a -m "BUILD Kernel with optimizations" || true
+          echo "✅ 内核优化配置已完成"
           
       - name: 7.1 修改内核版本显示名称
         run: |
