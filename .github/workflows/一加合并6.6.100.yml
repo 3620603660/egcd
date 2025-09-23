@@ -266,6 +266,14 @@ jobs:
           CONFIG_BT_QCA=y  
           CONFIG_ARM64_SME=n  
           CONFIG_PM_DOMAIN_CPU_GOV=y
+
+          # 8. Power Management Enhancements
+          CONFIG_CPUFREQ_BOOST=y
+          CONFIG_DEVFREQ_BOOST=y
+          CONFIG_QCOM_CPU_CLUSTER_POWER_CONTROL=y
+
+          CONFIG_SCHED_EXT=y
+          CONFIG_ZSWAP=y
           
           EOF
           
