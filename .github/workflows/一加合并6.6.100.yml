@@ -176,25 +176,20 @@ jobs:
             echo "Error: 配置文件 $CONFIG_FILE 不存在"
             exit 1
           fi
-          
-          # 移除可能存在的旧优化配置，防止重复
-          sed -i '/# Optimizations Start/,/# Optimizations End/d' "$CONFIG_FILE"
-
-          # 将新的、完整的优化配置追加到文件末尾
           cat >> "$CONFIG_FILE" << 'EOF'
-
-          # Optimizations Start: 由 Manus AI 优化和整合
-
-          # 1. KernelSU & SUSFS (基础功能)
+          # 优化后的一加Ace5 Pro (骁龙8e, Android 15, Kernel 6.6.102) 内核配置
+          # KernelSU 配置 (保持不变)
           CONFIG_KSU=y
-          CONFIG_KSU_SUSFS=y
+          CONFIG_KSU_SUSFS_SUS_SU=n
           CONFIG_KSU_MANUAL_HOOK=y
+          CONFIG_KSU_SUSFS=y
           CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
           CONFIG_KSU_SUSFS_SUS_PATH=y
           CONFIG_KSU_SUSFS_SUS_MOUNT=y
           CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y
           CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y
-          CONFIG_KSU_SUSFS_KSTAT=y
+          CONFIG_KSU_SUSFS_SUS_KSTAT=y
+          CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n
           CONFIG_KSU_SUSFS_TRY_UMOUNT=y
           CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y
           CONFIG_KSU_SUSFS_SPOOF_UNAME=y
@@ -202,7 +197,6 @@ jobs:
           CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
           CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
           CONFIG_KPM=y
-
           # CPU和电源管理
           CONFIG_CPU_FREQ=y
           CONFIG_CPU_FREQ_STAT=y
@@ -267,13 +261,9 @@ jobs:
           CONFIG_ARM64_SME=n  
           CONFIG_PM_DOMAIN_CPU_GOV=y
 
-          # 8. Power Management Enhancements
           CONFIG_CPUFREQ_BOOST=y
           CONFIG_DEVFREQ_BOOST=y
           CONFIG_QCOM_CPU_CLUSTER_POWER_CONTROL=y
-
-          CONFIG_SCHED_EXT=y
-          CONFIG_ZSWAP=y
           
           EOF
           
