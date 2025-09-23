@@ -267,10 +267,6 @@ jobs:
           CONFIG_ARM64_SME=n  
           CONFIG_PM_DOMAIN_CPU_GOV=y
           
-          # Shortcut-FE (高通网络加速)
-          CONFIG_NET_SHORTCUT_FE=y
-          CONFIG_NET_SHORTCUT_FE_USER=y
-
           EOF
           
           sed -i 's/check_defconfig//' ./common/build.config.gki
