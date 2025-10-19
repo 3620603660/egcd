@@ -323,8 +323,6 @@ jobs:
               echo "CONFIG_DEFAULT_TCP_CONG=bbr" >> ./common/arch/arm64/configs/gki_defconfig
             else
               echo "CONFIG_DEFAULT_TCP_CONG=cubic" >> ./common/arch/arm64/configs/gki_defconfig
-            fi
-          fi
 
       - name: 启用ADIOS IO调度器
         run: |
@@ -332,14 +330,12 @@ jobs:
             cd kernel_workspace
             echo "CONFIG_MQ_IOSCHED_ADIOS=y" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
 
       - name: 启用Re-Kernel支持
         run: |
             echo "正在启用Re-Kernel支持(用于与Freezer,NoActive等软件配合使用,提升冻结后台能力)…"
             cd kernel_workspace
             echo "CONFIG_REKERNEL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
           
       - name: 7.1 修改内核版本显示名称
         run: |
