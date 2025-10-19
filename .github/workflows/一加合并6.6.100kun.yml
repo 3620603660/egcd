@@ -39,6 +39,10 @@ on:
         required: false
         default: 'Tue Jul 1 19:48:18 UTC 2025'
         type: string
+      KernelSU_Nex_tag:
+        description: "自定义版本来源后缀（如:见清）"
+        required: false
+        default: "-by-Ciallo～(∠・ω<)⌒⭐"
 
 env:
   WORKSPACE_DIR: kernel_workspace
@@ -87,7 +91,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-v1_pro
+          key: ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-v2_pro
           restore-keys: |
             ${{ runner.os }}-${{ github.repository }}-${{ github.ref_name }}-ccache-
             ${{ runner.os }}-${{ github.repository }}-ccache-
@@ -121,14 +125,39 @@ jobs:
           rm -f kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports to remove."
           rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports to remove."
           
-      - name: Set up KernelSU Next
+      - name: Export suffix
+        run: |
+          echo "TAG_SUFFIX=${{ github.event.inputs.KernelSU_Nex_tag }}" >> $GITHUB_ENV
+          
+      - name: Setup KernelSU-Next
         run: |
           cd kernel_workspace/kernel_platform
           curl -LSs "https://raw.githubusercontent.com/pershoot/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
           cd KernelSU-Next
-          KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/commits?sha=next&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 10200)
-          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
+          # 获取 next 分支 commit 数量并加上 10200
+          KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/commits?sha=next&per_page=1" \
+            | grep -i "link:" \
+            | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 10200)
+          {
+            echo "KSUVER<<EOF"
+            echo "${KSU_VERSION}"
+            echo "EOF"
+          } >> $GITHUB_ENV
           sed -i "s/DKSU_VERSION=11998/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+          # 获取最近的 tag (例: v1.1.1)
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # 拼接 tag+后缀（后缀来自 Export suffix 步骤注入）
+          CUSTOM_TAG="${TAG}${TAG_SUFFIX}"
+          {
+            echo "KSUTAG<<EOF"
+            echo "${CUSTOM_TAG}"
+            echo "EOF"
+          } >> $GITHUB_ENV
+          # 替换 Makefile 里的默认 DKSU_VERSION_TAG
+          sed -i "s|^\s*KSU_VERSION_TAG :=.*|KSU_VERSION_TAG := ${CUSTOM_TAG}|" kernel/Makefile
+          
+          # 打印确认
+          echo "👉 KernelSU-Next Tag = ${CUSTOM_TAG}"
 
       - name: Set up SUSFS & apply patches
         run: |
@@ -225,7 +254,6 @@ jobs:
       - name: 启用网络功能增强优化配置
         run: |
           cd kernel_workspace
-          if [[ "${{ github.event.inputs.better_net }}" == "true" ]]; then
             #启用  BPF 流解析器,实现高性能网络流量处理,增强网络监控和分析能力
             echo "CONFIG_BPF_STREAM_PARSER=y" >> ./common/arch/arm64/configs/gki_defconfig
             #开启增强 Netfilter 防火墙扩展模块,支持基于地址类型的匹配规则,启用 IP 集合支持,提高防火墙规则灵活性,支持更复杂的流量过滤策略
@@ -261,7 +289,6 @@ jobs:
 
       - name: 添加 BBR 等一系列拥塞控制算法
         run: |
-          if [[ "${{ github.event.inputs.bbr_enable }}" == "true" || "${{ github.event.inputs.bbr_enable }}" == "default" ]]; then
             echo "正在添加BBR等拥塞控制算法..."
             cd kernel_workspace
             #开启TCP拥塞控制算法控制器（必需）
@@ -301,7 +328,6 @@ jobs:
 
       - name: 启用ADIOS IO调度器
         run: |
-          if [[ "${{ github.event.inputs.adios_rekernel_enable }}" == "1" || "${{ github.event.inputs.adios_rekernel_enable }}" == "3" ]]; then
             echo "正在启用ADIOS IO调度器(将截止时间优先调度算法与基于自主学习的自适应延迟控制算法相结合, 降低I/O延迟)…"
             cd kernel_workspace
             echo "CONFIG_MQ_IOSCHED_ADIOS=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -310,7 +336,6 @@ jobs:
 
       - name: 启用Re-Kernel支持
         run: |
-          if [[ "${{ github.event.inputs.adios_rekernel_enable }}" == "2" || "${{ github.event.inputs.adios_rekernel_enable }}" == "3" ]]; then
             echo "正在启用Re-Kernel支持(用于与Freezer,NoActive等软件配合使用,提升冻结后台能力)…"
             cd kernel_workspace
             echo "CONFIG_REKERNEL=y" >> ./common/arch/arm64/configs/gki_defconfig
