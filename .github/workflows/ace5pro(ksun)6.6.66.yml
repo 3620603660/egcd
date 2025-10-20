@@ -39,7 +39,7 @@ on:
         type: string
       KernelSU_Nex_tag:
         description: "自定义版本来源后缀（如:见清）"
-        required: false
+        required: true
         default: "-by-Ciallo～(∠・ω<)⌒⭐"
         
 jobs:
@@ -430,10 +430,10 @@ jobs:
 
          # 执行 defconfig
          export KBUILD_CFLAGS="-fpolly -flto=thin"
-         make -j$(nproc) "$MAKE_ARGS" gki_defconfig
+         make -j$(nproc) $MAKE_ARGS gki_defconfig
 
          # 编译全部目标
-         make -j$(nproc) "$MAKE_ARGS" all
+         make -j$(nproc) $MAKE_ARGS all
 
          # 创建输出目录并复制 Image
          mkdir -p ../dist
