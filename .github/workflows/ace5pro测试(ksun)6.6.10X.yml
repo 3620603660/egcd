@@ -361,8 +361,8 @@ jobs:
       - name: 拉取afdo
         run: |
           cd ${{ env.WORKSPACE_DIR }}
-          git clone https://github.com/PxxPei/afdo.git
-
+          git clone --depth=1 https://github.com/PxxPei/afdo.git
+          
       - name: Install Clang 19.0.0 compiler
         run: |
           mkdir -p clang19
