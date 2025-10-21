@@ -103,7 +103,7 @@ jobs:
 
       - name: 初始化并同步内核源码
         run: |
-          mkdir -p kernel_workspace && cd kernel_workspace
+          mkdir -p ${{ env.WORKSPACE_DIR }} && cd ${{ env.WORKSPACE_DIR }}
           repo init -u https://github.com/3620603660/kernel_manifest.git \
             -b refs/heads/oneplus/${{ github.event.inputs.CPU }} \
             -m ${{ github.event.inputs.FEIL }}.xml --depth=1
@@ -359,7 +359,7 @@ jobs:
 
       - name: 拉取afdo
         run: |
-          cd kernel_workspace
+          cd ${{ env.WORKSPACE_DIR }}
           git clone https://github.com/PxxPei/afdo.git
 
       - name: Install Clang 19.0.0 compiler
@@ -381,7 +381,7 @@ jobs:
           export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME_STR"
           
           # 设置 AFDO 配置文件路径
-          export AFDO_PROFILE="${{ github.workspace }}/kernel_workspace/afdo/kernel.afdo"
+          export AFDO_PROFILE="${{ github.workspace }}/${{ env.WORKSPACE_DIR }}/afdo/kernel.afdo"
           
           # 打印验证
           echo "KBUILD_BUILD_TIMESTAMP = $KBUILD_BUILD_TIMESTAMP"
