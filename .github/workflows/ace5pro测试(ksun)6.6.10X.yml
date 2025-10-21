@@ -46,6 +46,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
+      WORKSPACE_DIR: kernel_workspace
       # [优化] 集中定义 ccache 环境变量
       CCACHE_DIR: /home/runner/.ccache
       CCACHE_MAXSIZE: 8G
