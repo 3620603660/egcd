@@ -46,7 +46,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      WORKSPACE_DIR: kernel_workspace
       # [优化] 集中定义 ccache 环境变量
       CCACHE_DIR: /home/runner/.ccache
       CCACHE_MAXSIZE: 8G
@@ -104,7 +103,7 @@ jobs:
 
       - name: 初始化并同步内核源码
         run: |
-          mkdir -p ${{ env.WORKSPACE_DIR }} && cd ${{ env.WORKSPACE_DIR }}
+          mkdir -p kernel_workspace && cd kernel_workspace
           repo init -u https://github.com/3620603660/kernel_manifest.git \
             -b refs/heads/oneplus/${{ github.event.inputs.CPU }} \
             -m ${{ github.event.inputs.FEIL }}.xml --depth=1
@@ -358,11 +357,6 @@ jobs:
           git add -A && git commit -m "Apply custom configs and patches" || true
           echo "✅ 内核配置完成"
 
-      - name: 拉取afdo
-        run: |
-          cd ${{ env.WORKSPACE_DIR }}
-          git clone --depth=1 https://github.com/PxxPei/afdo.git
-          
       - name: Install Clang 19.0.0 compiler
         run: |
           mkdir -p clang19
@@ -382,7 +376,7 @@ jobs:
           export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME_STR"
           
           # 设置 AFDO 配置文件路径
-          export AFDO_PROFILE="${{ github.workspace }}/${{ env.WORKSPACE_DIR }}/afdo/kernel.afdo"
+          export AFDO_PROFILE="${{ github.workspace }}/kernel_workspace/afdo/kernel.afdo"
           
           # 打印验证
           echo "KBUILD_BUILD_TIMESTAMP = $KBUILD_BUILD_TIMESTAMP"
