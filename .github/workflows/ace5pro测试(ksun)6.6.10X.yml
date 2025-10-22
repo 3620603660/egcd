@@ -155,6 +155,12 @@ jobs:
           cp ../boot/1.patch ./common/
           
           cd ./common
+
+          # if [[ "${{ github.event.inputs.FEIL }}" == "oneplus_13" || "${{ github.event.inputs.FEIL }}" == "oneplus_ace5_pro" ]]; then
+          # sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch
+          # sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch
+          # fi
+         
           # 应用补丁
           patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch || true
           patch -p1 -F 3 < ../../kernel_patches/next/scope_min_manual_hooks_v1.4.patch || true
@@ -186,9 +192,9 @@ jobs:
 
       - name: Configure kernel options
         run: |
-          cd kernel_workspace/kernel_platform/common/arch/arm64/configs
-          # 追加优化配置
-          cat <<EOF >> gki_defconfig
+          cd kernel_workspace/kernel_platform
+          # 向 gki_defconfig 中追加配置
+          cat <<EOF >> ./common/arch/arm64/configs/gki_defconfig
           # KSU 与 SUSFS 配置
           CONFIG_KSU=y
           CONFIG_KSU_MANUAL_HOOK=n
