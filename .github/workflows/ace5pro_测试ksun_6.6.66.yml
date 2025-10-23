@@ -135,21 +135,6 @@ jobs:
           
           echo "👉 KernelSU-Next Tag = ${CUSTOM_TAG}"
 
-      - name: 安装和设置 Clang 19.0.0 编译器环境
-        run: |
-          CLANG_DIR="${{ github.workspace }}/clang19"
-          mkdir -p "$CLANG_DIR"
-          wget -q -O "$CLANG_DIR/Clang-19.0.0git-20240723.tar.gz" https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
-          tar -zxf "$CLANG_DIR/Clang-19.0.0git-20240723.tar.gz" -C "$CLANG_DIR" --strip-components=1
-          echo "CLANG_PATH=$CLANG_DIR/bin" >> $GITHUB_ENV
-          echo "LLVM_TOOLS_PATH=$CLANG_DIR/bin" >> $GITHUB_ENV # 明确设置LLVM工具链路径
-          echo "✅ Clang 19.0.0 环境设置完成"
-
-      - name: Add Clang and LLVM tools to PATH
-        run: |
-          echo "${{ env.CLANG_PATH }}" >> $GITHUB_PATH
-          echo "${{ env.LLVM_TOOLS_PATH }}" >> $GITHUB_PATH # 将LLVM工具链路径添加到PATH
-
       - name: Set up SUSFS & apply patches
         run: |
           set -e
@@ -425,17 +410,21 @@ jobs:
         run: |
           export SOURCE_DATE_EPOCH=$(date -d "${{ github.event.inputs.kernel_time }}" +%s)
           echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
-
+      
+      - name: Install Clang 19.0
+        run: |
+          mkdir clang19
+          cd clang19
+          curl -LO https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
+          tar -xvf Clang-19.0.0git-20240723.tar.gz
+          cd ..
+   
       - name: Build Kernel
         run: |
-          # 确保LLVM工具链路径在当前shell会话中可用
-          export PATH="${{ env.LLVM_TOOLS_PATH }}:${PATH}"
-
-          # 验证PATH是否已更新
-          echo "当前PATH: $PATH"
-          which clang || true
-          which lld || true
-          which ld.lld || true
+          # 1. 设置环境变量
+          export CLANG_PATH="${{ github.workspace }}/clang19/bin"
+          export PATH="${CLANG_PATH}:${PATH}"
+          export PATH="/usr/lib/ccache:${PATH}"
           
           # 设置固定内核构建时间
           export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.kernel_time }}"
@@ -458,8 +447,7 @@ jobs:
           RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
           PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
           LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
-          PATH=${{ env.LLVM_TOOLS_PATH }}:${PATH}" # 确保ld.lld在编译时PATH中可见"
- 
+          
           # 进入源码目录
           cd kernel_workspace/kernel_platform/common
           rm -rf out
