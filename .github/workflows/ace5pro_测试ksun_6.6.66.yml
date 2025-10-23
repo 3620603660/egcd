@@ -142,10 +142,13 @@ jobs:
           wget -q -O "$CLANG_DIR/Clang-19.0.0git-20240723.tar.gz" https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
           tar -zxf "$CLANG_DIR/Clang-19.0.0git-20240723.tar.gz" -C "$CLANG_DIR" --strip-components=1
           echo "CLANG_PATH=$CLANG_DIR/bin" >> $GITHUB_ENV
+          echo "LLVM_TOOLS_PATH=$CLANG_DIR/bin" >> $GITHUB_ENV # 明确设置LLVM工具链路径
           echo "✅ Clang 19.0.0 环境设置完成"
 
-      - name: Add Clang to PATH
-        run: echo "${{ env.CLANG_PATH }}" >> $GITHUB_PATH
+      - name: Add Clang and LLVM tools to PATH
+        run: |
+          echo "${{ env.CLANG_PATH }}" >> $GITHUB_PATH
+          echo "${{ env.LLVM_TOOLS_PATH }}" >> $GITHUB_PATH # 将LLVM工具链路径添加到PATH
 
       - name: Set up SUSFS & apply patches
         run: |
@@ -450,8 +453,9 @@ jobs:
           export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
           RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
           PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-          LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
-
+          LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
+          PATH=${{ env.LLVM_TOOLS_PATH }}:${PATH}" # 确保ld.lld在编译时PATH中可见"
+ 
           # 进入源码目录
           cd kernel_workspace/kernel_platform/common
           rm -rf out
