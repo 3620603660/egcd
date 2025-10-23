@@ -428,11 +428,15 @@ jobs:
 
       - name: Build Kernel
         run: |
+          # 确保LLVM工具链路径在当前shell会话中可用
+          export PATH="${{ env.LLVM_TOOLS_PATH }}:${PATH}"
+
           # 验证PATH是否已更新
           echo "当前PATH: $PATH"
           which clang || true
-          which ccache || true
-
+          which lld || true
+          which ld.lld || true
+          
           # 设置固定内核构建时间
           export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.kernel_time }}"
           # SOURCE_DATE_EPOCH 已经在上步骤中设置并导出到 GITHUB_ENV
