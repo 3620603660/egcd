@@ -366,6 +366,9 @@ jobs:
           CONFIG_NVME_MULTIPATH=y
           CONFIG_NVME_TARGET=y
 
+          #附加
+          CONFIG_REKERNEL=y
+
           EOF
           
           sed -i 's/check_defconfig//' ./common/build.config.gki
