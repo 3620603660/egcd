@@ -284,8 +284,7 @@ jobs:
           CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
           CONFIG_LOCALVERSION_AUTO=n
           CONFIG_LTO_CLANG=y
-          CONFIG_LTO_CLANG_FULL=y # 【优化 2: Full LTO】
-          # CONFIG_LTO_CLANG_THIN=y # 移除 Thin LTO
+          CONFIG_LTO_CLANG_THIN=y
           CONFIG_LTO_POLLY=y
           
           #### 网络 (保持不变)
@@ -438,7 +437,8 @@ jobs:
          cd kernel_workspace/kernel_platform/common
          rm -rf out
 
-         # 执行 defconfig (Full LTO 启用后,移除 KBUILD_CFLAGS="-fpolly -flto=thin")
+         # 执行 defconfig
+         KBUILD_CFLAGS="-fpolly -flto=thin"
          make -j$(nproc) $MAKE_ARGS gki_defconfig
 
          # 编译全部目标
