@@ -42,43 +42,7 @@ on:
         required: false
         default: "-by-Ciallo～(∠・ω< )⌒★"
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    env:
-      # 统一配置 ccache 环境变量
-      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
-      CCACHE_NOHASHDIR: "true"
-      CCACHE_HARDLINK: "true"
-      CCACHE_DIR: "/home/runner/.ccache"
-      CCACHE_MAXSIZE: "8G"
-      CCACHE_BASEDIR: "${{ github.workspace }}"
-      CCACHE_LOGFILE: "${{ github.workspace }}/ccache.log"
-      TOKEN: ${{ secrets.TOKEN }}
-    steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 8192
-          temp-reserve-mb: 2048
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "build"
-          git config --global user.email "3620603660@qq.com"
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Export custom tag suffix
-        run: |
-          echo "TAG_SUFFIX=${{ github.event.inputs.KernelSU_Nex_tag }}" >> $GITHUB_ENV
-
-      - name: Inenv:
+env:
   WORKSPACE_DIR: kernel_workspace
   KERNEL_PLATFORM_DIR: ${{ github.workspace }}/kernel_workspace/kernel_platform
   CCACHE_DIR: /home/runner/.ccache
