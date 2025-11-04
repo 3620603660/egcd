@@ -248,8 +248,14 @@ jobs:
         run: |
           cd kernel_workspace/kernel_platform
           # 向 gki_defconfig 中追加配置
-          cat <<EOF >> ./common/arch/arm64/configs/gki_defconfig
-          # KSU 与 SUSFS 配置
+          CONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "Error: 配置文件 $CONFIG_FILE 不存在"
+            exit 1
+          fi
+          cat >> "$CONFIG_FILE" << 'EOF' # KSU 与 SUSFS 配置
+          
+          # KernelSU 配置
           CONFIG_KSU=y
           CONFIG_KSU_MANUAL_HOOK=n
           CONFIG_KSU_SUSFS=y
@@ -395,22 +401,12 @@ jobs:
           CONFIG_TMPFS_POSIX_ACL=y          # 为tmpfs启用POSIX访问控制列表
           CONFIG_TMPFS_XATTR=y          # 为tmpfs启用扩展属性
 
-          #### 特定硬件和驱动
-
-          CONFIG_ARM64_SME=y          # 建议根据硬件支持和需求考虑启用，如果硬件不支持或不需要，可设置为n
-          CONFIG_BT_QCA=y
-          CONFIG_NVME_MULTIPATH=y
-          CONFIG_NVME_TARGET=y
-
-          #附加
-          CONFIG_REKERNEL=y
-
           EOF
           
           sed -i 's/check_defconfig//' ./common/build.config.gki
           git add -A && git commit -a -m "BUILD Kernel with optimizations" || true
           echo "✅ 内核优化配置已完成"
-
+          
       - name: Add make name
         run: |
          cd kernel_workspace/kernel_platform
