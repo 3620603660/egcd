@@ -40,7 +40,7 @@ on:
       KernelSU_Nex_tag:
         description: "自定义版本来源后缀（如:见清）"
         required: false
-        default: "-by-Ciallo～(∠・ω<)⌒⭐️"
+        default: "-by-Ciallo(∠・ω<)⌒⭐️"
 jobs:
   build:
     runs-on: ubuntu-latest
