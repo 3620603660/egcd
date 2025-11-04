@@ -212,201 +212,40 @@ jobs:
           patch -s -p1 -F 3 < 1.patch || true
           patch -p1 -F 3 --fuzz=5 < lz4_1.10.0.patch || true
           echo "✅ SUSFS 和 scope_min_manual_hooks_v1.4 patch 应用完成"         
-          
-      - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
-        run: |
-         echo "正在添加lz4 1.10.0 & zstd 1.5.7补丁…"
-         # 进入内核工作区
-         cd kernel_workspace
-         # 克隆补丁仓库
-         git clone https://github.com/PxxPei/oppo_oplus_realme_sm8750.git
-         # --- 新增步骤：确保目标目录存在 ---
-         mkdir -p ./common/lib
-         # 复制补丁文件到正确的位置
-         cp ./oppo_oplus_realme_sm8750/zram_patch/001-lz4.patch ./common
-         cp ./oppo_oplus_realme_sm8750/zram_patch/lz4armv8.S ./common/lib
-         cp ./oppo_oplus_realme_sm8750/zram_patch/002-zstd.patch ./common
-         # 进入 common 目录以应用补丁
-         cd ./common
-         # 应用补丁
-         git apply 001-lz4.patch || true
-         patch -p1 < 002-zstd.patch || true
-         
-      - name: Apply lz4kd Patches
-        run: |
-         set -e
-         cd kernel_workspace/kernel_platform/common
-         PATCH_FILE=../../SukiSU_patch/other/zram/zram_patch/${{ inputs.KERNEL_VERSION }}/lz4kd.patch
-         if [[ -f "$PATCH_FILE" ]]; then
-         cp "$PATCH_FILE" ./lz4kd.patch
-         patch -p1 -F 3 < lz4kd.patch || true
-         else
-         echo "❗ lz4kd patch not found for kernel version ${{ inputs.KERNEL_VERSION }}"
-         fi
 
-      - name: 设置内核优化配置
+      - name: Add SUSFS Configuration Settings
         run: |
           cd kernel_workspace/kernel_platform
-          # 向 gki_defconfig 中追加配置
-          CONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
-          if [ ! -f "$CONFIG_FILE" ]; then
-            echo "Error: 配置文件 $CONFIG_FILE 不存在"
-            exit 1
-          fi
-          cat >> "$CONFIG_FILE" << 'EOF' # KSU 与 SUSFS 配置
+          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
           
-          # KernelSU 配置
-          CONFIG_KSU=y
-          CONFIG_KSU_MANUAL_HOOK=n
-          CONFIG_KSU_SUSFS=y
-          CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
-          CONFIG_KSU_SUSFS_SUS_PATH=y
-          CONFIG_KSU_SUSFS_SUS_MOUNT=y
-          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y
-          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y
-          CONFIG_KSU_SUSFS_SUS_KSTAT=y
-          CONFIG_KSU_SUSFS_TRY_UMOUNT=y
-          CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y
-          CONFIG_KSU_SUSFS_SPOOF_UNAME=y
-          CONFIG_KSU_SUSFS_ENABLE_LOG=y
-          CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
-          CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
-          CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-          CONFIG_KSU_SUSFS_SUS_SU=n
-          CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n
-          
-          #### CPU和电源管理
-
-          CONFIG_CPUFREQ_BOOST=y          # 启用CPU频率提升
-          CONFIG_CPU_FREQ=y          # 启用CPU频率调节
-          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y          # 启用基于调度器利用率信息的CPU频率调速器
-          CONFIG_CPU_FREQ_STAT=y          # 收集CPU频率转换的统计信息
-          CONFIG_CPU_HOTPLUG=y          # 启用CPU热插拔
-          CONFIG_CPU_IDLE=y          # 启用CPU空闲状态管理
-          CONFIG_CPU_IDLE_GOV_TEO=y          # 启用TEO（Timer Events Oriented）空闲调速器
-          CONFIG_CPU_IDLE_STATE_RESIDENCY=y          # 跟踪CPU在每个空闲状态的驻留时间
-          CONFIG_CPU_IDLE_TIME_IN_ACCOUNTING=y          # 将CPU空闲时间计入账户
-          CONFIG_DEVFREQ_BOOST=y          # 启用设备频率提升
-          CONFIG_PM_DOMAIN_CPU_GOV=y          # 启用CPU电源域调速器
-          CONFIG_PM_WAKELOCKS=y          # 启用唤醒锁，防止系统进入深度睡眠
-          CONFIG_PM_WAKELOCKS_GC=y          # 启用唤醒锁的垃圾回收
-          CONFIG_QCOM_CPU_CLUSTER_POWER_CONTROL=y          # 启用高通CPU集群功耗控制
-          CONFIG_SCHED_CLASS_EXT=y          # 启用扩展调度类
-          CONFIG_SCHED_CORE=y          # 启用核心调度，允许更精细的CPU资源控制
-          CONFIG_SCHED_EAS=y          # 启用Energy Aware Scheduling (EAS)
-          CONFIG_SCHED_HRTICK=y          # 启用高精度调度时钟
-          CONFIG_SCHED_MC=y          # 启用多核调度
-          CONFIG_SCHED_THERMAL_PRESSURE=y          # 允许调度器感知热压力
-          CONFIG_SCHED_TUNE=y          # 启用调度器调优
-          CONFIG_SCHED_UTIL_CLAMP=y          # 启用调度利用率限制
-          CONFIG_SCHED_WALT=y          # 启用Window-Assisted Load Tracking (WALT)调度算法
-          CONFIG_THERMAL_GOV_FAIR_SHARE=y          # 启用公平分享散热调速器
-          CONFIG_THERMAL_GOV_POWER_ALLOCATOR=y          # 启用电源分配散热调速器
-          CONFIG_UCLAMP_TASK=y          # 允许任务级别的利用率限制
-
-          #### 内存管理
-
-          CONFIG_ANDROID_LOW_MEMORY_KILLER=y          # 启用Android的低内存杀手
-          CONFIG_BLK_DEV_ZRAM_DISCARD=y          # 允许zRAM设备处理discard请求
-          CONFIG_LRU_GEN=y          # 启用多代LRU（最近最少使用）算法
-          CONFIG_TRANSPARENT_HUGEPAGE=y          # 启用透明大页，提高内存管理效率
-          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n          # 不总是强制使用透明大页
-          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y          # 允许通过madvise()系统调用选择性使用透明大页
-          CONFIG_ZRAM=y          # 启用zRAM，创建基于RAM的压缩块设备
-          CONFIG_ZRAM_LZ4=y          # 为zRAM启用LZ4压缩算法
-          CONFIG_ZRAM_MULTI_COMP=y          # 允许zRAM使用多种压缩算法
-          CONFIG_ZRAM_ZSTD=y          # 为zRAM启用Zstandard压缩算法
-          CONFIG_ZSMALLOC=y          # 启用zsmalloc，一种用于压缩页面的内存分配器
-
-          #### 编译与性能优化
-
-          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y          # 使用-O2编译器标志进行性能优化
-          CONFIG_LOCALVERSION_AUTO=n          # 禁止自动在内核版本后附加git commit ID
-          CONFIG_LTO_CLANG=y
-          CONFIG_LTO_CLANG_THIN=y
-          CONFIG_LTO_POLLY=y
-
-          #### 网络
-
-          CONFIG_BPF_STREAM_PARSER=y          # 启用BPF流解析器，用于TCP流处理
-          CONFIG_BQL=y          # 启用Byte Queue Limits，用于网络设备
-          CONFIG_DEFAULT_NET_SCH="cake"
-          CONFIG_DEFAULT_TCP_CONG="bbr"
-          CONFIG_INET=y          # 启用TCP/IP协议栈
-          CONFIG_IP6_NF_NAT=y          # 启用IPv6网络地址转换（NAT）
-          CONFIG_IP6_NF_TARGET_MASQUERADE=y          # 启用IPv6的MASQUERADE NAT目标
-          CONFIG_IPV6=y          # 启用IPv6协议
-          CONFIG_IP_SET=y          # 启用IP sets，用于管理IP地址集合
-          CONFIG_IP_SET_BITMAP_IP=y          # 启用bitmap:ip类型的IP set
-          CONFIG_IP_SET_BITMAP_IPMAC=y          # 启用bitmap:ip,mac类型的IP set
-          CONFIG_IP_SET_BITMAP_PORT=y          # 启用bitmap:port类型的IP set
-          CONFIG_IP_SET_HASH_IP=y          # 启用hash:ip类型的IP set
-          CONFIG_IP_SET_HASH_IPMAC=y          # 启用hash:ip,mac类型的IP set
-          CONFIG_IP_SET_HASH_IPMARK=y          # 启用hash:ip,mark类型的IP set
-          CONFIG_IP_SET_HASH_IPPORT=y          # 启用hash:ip,port类型的IP set
-          CONFIG_IP_SET_HASH_IPPORTIP=y          # 启用hash:ip,port,ip类型的IP set
-          CONFIG_IP_SET_HASH_IPPORTNET=y          # 启用hash:ip,port,net类型的IP set
-          CONFIG_IP_SET_HASH_MAC=y          # 启用hash:mac类型的IP set
-          CONFIG_IP_SET_HASH_NET=y          # 启用hash:net类型的IP set
-          CONFIG_IP_SET_HASH_NETIFACE=y          # 启用hash:net,iface类型的IP set
-          CONFIG_IP_SET_HASH_NETNET=y          # 启用hash:net,net类型的IP set
-          CONFIG_IP_SET_HASH_NETPORT=y          # 启用hash:net,port类型的IP set
-          CONFIG_IP_SET_HASH_NETPORTNET=y          # 启用hash:net,port,net类型的IP set
-          CONFIG_IP_SET_LIST_SET=y          # 启用list:set类型的IP set
-          CONFIG_NET=y          # 启用网络支持
-          CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y          # 启用addrtype netfilter匹配模块
-          CONFIG_NETFILTER_XT_SET=y          # 启用set netfilter匹配模块
-          CONFIG_NET_SCHED=y          # 启用网络数据包调度器
-          CONFIG_NET_SCH_CAKE=y          # 启用CAKE（Common Applications Kept Enhanced）队列管理算法
-          CONFIG_NET_SCH_FQ=y          # 启用Fair Queue（公平队列）调度器
-          CONFIG_NET_SCH_FQ_CODEL=y          # 启用带CoDel的Fair Queue调度器
-          CONFIG_TCP_CONG_ADVANCED=y          # 启用高级TCP拥塞控制算法
-          CONFIG_TCP_CONG_BBR=y          # 启用BBR TCP拥塞控制算法
-          CONFIG_TCP_CONG_BRUTAL=y          # 启用BRUTAL TCP拥塞控制算法
-          CONFIG_TCP_CONG_CUBIC=y          # 启用CUBIC TCP拥塞控制算法
-          CONFIG_TCP_CONG_HTCP=y          # 启用H-TCP拥塞控制算法
-          CONFIG_TCP_CONG_NV=y          # 启用NV TCP拥塞控制算法
-          CONFIG_TCP_CONG_VEGAS=y          # 启用Vegas TCP拥塞控制算法
-          CONFIG_TCP_CONG_WESTWOOD=y          # 启用Westwood TCP拥塞控制算法
-          CONFIG_TCP_FASTOPEN=y          # 启用TCP Fast Open
-          CONFIG_TCP_SACK=y          # 启用TCP选择性确认（SACK）
-          CONFIG_TCP_TIMESTAMPS=y          # 启用TCP时间戳
-
-          #### 加密与压缩
-
-          CONFIG_CRYPTO_842=y          # 启用842压缩算法的加密API
-          CONFIG_CRYPTO_LZ4=y          # 启用LZ4压缩算法的加密API
-          CONFIG_CRYPTO_LZ4HC=y          # 启用LZ4HC（高压缩）算法的加密API
-          CONFIG_CRYPTO_LZ4K=y          # 启用LZ4K压缩算法的加密API
-          CONFIG_CRYPTO_LZ4KD=y          # 启用LZ4KD解压算法的加密API
-
-          #### IO和文件系统
-
-          CONFIG_BFQ_ALLOC_BATCH=y
-          CONFIG_BFQ_GROUP_IOSCHED=y
-          CONFIG_BLK_CGROUP_IOCOST=y
-          CONFIG_BLK_MQ=y
-          CONFIG_BLK_MQ_PCI=y
-          CONFIG_BLK_WBT=y
-          CONFIG_F2FS_FS_LZ4=y
-          CONFIG_F2FS_FS_LZ4HC=y
-          CONFIG_F2FS_FS_ZSTD=y
-          CONFIG_IO_URING=y
-          CONFIG_IO_URING_ASYNC=y
-          CONFIG_MQ_IOSCHED_ADIOS=y          # 启用ADIOS I/O调度器
-          CONFIG_MQ_IOSCHED_BFQ=y
-          CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y          # 将ADIOS设置为默认I/O调度器
-          CONFIG_PAGE_BOOST=y
-          CONFIG_SWAP_ASYNC_IO=y
-          CONFIG_TMPFS_POSIX_ACL=y          # 为tmpfs启用POSIX访问控制列表
-          CONFIG_TMPFS_XATTR=y          # 为tmpfs启用扩展属性
-
-          EOF
-          
+          echo "CONFIG_CRYPTO_LZ4HC=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_CRYPTO_LZ4K=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
+         
+          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_LTO_CLANG=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_LTO_CLANG_THIN=y" >> ./common/arch/arm64/configs/gki_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
-          git add -A && git commit -a -m "BUILD Kernel with optimizations" || true
-          echo "✅ 内核优化配置已完成"
-          
+          cd common
+          git add -A && git commit -a -m "BUILD Kernel"
+
       - name: Add make name
         run: |
          cd kernel_workspace/kernel_platform
