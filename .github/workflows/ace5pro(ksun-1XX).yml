@@ -185,9 +185,7 @@ jobs:
           cp ../../kernel_patches/69_hide_stuff.patch ./
           patch -p1 -F 3 < 69_hide_stuff.patch
           patch -p1 --fuzz=3 < scope_min_manual_hooks_v1.5.patch
-          echo "✅ SUSFS 和 scope_min_manual_hooks_v1.5 patch 应用完成"         
-          
-      
+          echo "✅ SUSFS 和 scope_min_manual_hooks_v1.5 patch 应用完成"
           
       - name: Apply lz4kd Patches
         run: |
@@ -261,7 +259,6 @@ jobs:
           CONFIG_PM_WAKELOCKS=y          # 启用唤醒锁
           CONFIG_PM_WAKELOCKS_GC=y          # 启用唤醒锁垃圾回收
           CONFIG_QCOM_CPU_CLUSTER_POWER_CONTROL=y          # 启用高通 CPU 集群功耗控制
-          # CONFIG_SCHED_CLASS_EXT=y          # 6.6 内核中已废弃
 
           CONFIG_SCHED_CORE=y          # 启用核心调度
           CONFIG_SCHED_EAS=y          # 启用能源感知调度 (EAS)
@@ -331,12 +328,8 @@ jobs:
           CONFIG_NET_SCH_FQ_CODEL=y          # 启用 FQ_CoDel 调度器
           CONFIG_TCP_CONG_ADVANCED=y          # 启用高级 TCP 拥塞控制
           CONFIG_TCP_CONG_BBR=y          # 启用 BBR 拥塞控制
-          # CONFIG_TCP_CONG_BRUTAL=y          # 移除: 非标准拥塞控制
           CONFIG_TCP_CONG_CUBIC=y          # 启用 CUBIC 拥塞控制
           CONFIG_TCP_CONG_HTCP=y          # 启用 H-TCP 拥塞控制
-          # CONFIG_TCP_CONG_NV=y          # 移除: 非标准拥塞控制
-          # CONFIG_TCP_CONG_VEGAS=y          # 移除: 非标准拥塞控制
-          # CONFIG_TCP_CONG_WESTWOOD=y          # 移除: 非标准拥塞控制
           CONFIG_TCP_FASTOPEN=y          # 启用 TCP Fast Open
           CONFIG_TCP_SACK=y          # 启用 TCP SACK
           CONFIG_TCP_TIMESTAMPS=y          # 启用 TCP 时间戳
