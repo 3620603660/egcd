@@ -228,135 +228,143 @@ jobs:
           CONFIG_KSU_SUSFS_SUS_SU=n          # 禁用 SUS SU (通常不需要)
           CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n          # 禁用 SUSFS OverlayFS (通常不需要)
 
-          # F2FS 优化：启用核心功能，去除冗余的 FORCE 调试选项
-          
-          CONFIG_F2FS_FS_COMPRESSION=y          # 启用 F2FS 文件系统压缩
-          CONFIG_F2FS_FS_LZORLE=y          # 启用 F2FS 的 LZORLE 压缩算法
-          CONFIG_F2FS_IO_QUEUE_ENHANCEMENT=y          # 启用 F2FS I/O 队列增强
+          # F2FS 文件系统优化
+          CONFIG_F2FS_FS_COMPRESSION=y                 # 启用 F2FS 文件系统压缩
+          CONFIG_F2FS_FS_LZORLE=y                      # 启用 F2FS 的 LZORLE 压缩算法
+          CONFIG_F2FS_IO_QUEUE_ENHANCEMENT=y            # 启用 F2FS I/O 队列增强
           CONFIG_F2FS_IO_LATENCY_ENHANCEMENT=y          # 启用 F2FS I/O 延迟增强
-          CONFIG_F2FS_FIX_UNNECESSARY_DIO_SPLIT=y          # 修复不必要的 DIO 分割
+          CONFIG_F2FS_FIX_UNNECESSARY_DIO_SPLIT=y      # 修复不必要的 DIO 分割
           CONFIG_F2FS_SUPPORT_NILFS_CHKALLOC=y          # 启用 NILFS 检查分配支持
-          CONFIG_F2FS_CHECK_CHKSUM_TYPE=y          # 启用 F2FS 校验和类型检查
-          CONFIG_F2FS_IOSTAT=y          # 启用 F2FS I/O 统计
-          CONFIG_F2FS_SUPPORT_PINNED_FILE=y          # 启用 F2FS 固定文件支持
-          CONFIG_F2FS_SUPPORT_SSR=y          # 启用 F2FS SSR 支持
+          CONFIG_F2FS_CHECK_CHKSUM_TYPE=y               # 启用 F2FS 校验和类型检查
+          CONFIG_F2FS_IOSTAT=y                           # 启用 F2FS I/O 统计
+          CONFIG_F2FS_SUPPORT_PINNED_FILE=y             # 启用 F2FS 固定文件支持
+          CONFIG_F2FS_SUPPORT_SSR=y                      # 启用 F2FS SSR 支持
           CONFIG_F2FS_SUPPORT_VOLATILE_WRITE=y          # 启用 F2FS 易失性写入支持
-          CONFIG_F2FS_FS_LZ4=y              # F2FS: 启用 LZ4 压缩
-          CONFIG_F2FS_FS_ZSTD=y             # F2FS: 启用 ZSTD 压缩
-          CONFIG_F2FS_ATOMIC_WRITE=y        # 启用 F2FS 原子写
+          CONFIG_F2FS_FS_LZ4=y                           # 启用 LZ4 压缩算法
+          CONFIG_F2FS_FS_ZSTD=y                          # 启用 ZSTD 压缩算法
+          CONFIG_F2FS_ATOMIC_WRITE=y                     # 启用 F2FS 原子写
 
-          #### CPU和电源管理
-          
-          CONFIG_CPUFREQ_BOOST=y          # 启用 CPU 频率提升
-          CONFIG_CPU_FREQ=y          # 启用 CPU 频率调节
-          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y          # 启用基于调度器利用率的调速器
-          CONFIG_CPU_FREQ_STAT=y          # 收集 CPU 频率统计信息
-          CONFIG_CPU_HOTPLUG=y          # 启用 CPU 热插拔
-          CONFIG_CPU_IDLE=y          # 启用 CPU 空闲状态管理
-          CONFIG_CPU_IDLE_GOV_TEO=y          # 启用 TEO 空闲调速器
-          CONFIG_CPU_IDLE_STATE_RESIDENCY=y          # 跟踪 CPU 空闲状态驻留时间
+          # CPU 和电源管理
+          CONFIG_CPUFREQ_BOOST=y                         # 启用 CPU 频率提升
+          CONFIG_CPU_FREQ=y                              # 启用 CPU 频率调节
+          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y                 # 启用基于调度器利用率的调速器
+          CONFIG_CPU_FREQ_STAT=y                          # 收集 CPU 频率统计信息
+          CONFIG_CPU_HOTPLUG=y                           # 启用 CPU 热插拔
+          CONFIG_CPU_IDLE=y                              # 启用 CPU 空闲状态管理
+          CONFIG_CPU_IDLE_GOV_TEO=y                      # 启用 TEO 空闲调速器
+          CONFIG_CPU_IDLE_STATE_RESIDENCY=y              # 跟踪 CPU 空闲状态驻留时间
           CONFIG_CPU_IDLE_TIME_IN_ACCOUNTING=y          # 将 CPU 空闲时间计入账户
-          CONFIG_DEVFREQ_BOOST=y          # 启用设备频率提升
-          CONFIG_PM_DOMAIN_CPU_GOV=y          # 启用 CPU 电源域调速器
-          CONFIG_PM_WAKELOCKS=y          # 启用唤醒锁
-          CONFIG_PM_WAKELOCKS_GC=y          # 启用唤醒锁垃圾回收
-          CONFIG_QCOM_CPU_CLUSTER_POWER_CONTROL=y          # 启用高通 CPU 集群功耗控制
-
-          CONFIG_SCHED_CORE=y          # 启用核心调度
-          CONFIG_SCHED_EAS=y          # 启用能源感知调度 (EAS)
-          CONFIG_SCHED_HRTICK=y          # 启用高精度调度时钟
-          CONFIG_SCHED_MC=y          # 启用多核调度
-          CONFIG_SCHED_THERMAL_PRESSURE=y          # 允许调度器感知热压力
-          CONFIG_SCHED_TUNE=y          # 启用调度器调优
-          CONFIG_SCHED_UTIL_CLAMP=y          # 启用调度利用率限制
-          CONFIG_SCHED_WALT=y          # 启用 WALT 负载跟踪
-          CONFIG_THERMAL_GOV_FAIR_SHARE=y          # 启用公平分享散热调速器
+          CONFIG_DEVFREQ_BOOST=y                         # 启用设备频率提升
+          CONFIG_PM_DOMAIN_CPU_GOV=y                      # 启用 CPU 电源域调速器
+          CONFIG_PM_WAKELOCKS=y                          # 启用唤醒锁
+          CONFIG_PM_WAKELOCKS_GC=y                       # 启用唤醒锁垃圾回收
+          CONFIG_QCOM_CPU_CLUSTER_POWER_CONTROL=y        # 启用高通 CPU 集群功耗控制
+          CONFIG_SCHED_CORE=y                            # 启用核心调度
+          CONFIG_SCHED_EAS=y                              # 启用能源感知调度 (EAS)
+          CONFIG_SCHED_HRTICK=y                          # 启用高精度调度时钟
+          CONFIG_SCHED_MC=y                              # 启用多核调度
+          CONFIG_SCHED_THERMAL_PRESSURE=y                # 允许调度器感知热压力
+          CONFIG_SCHED_TUNE=y                            # 启用调度器调优
+          CONFIG_SCHED_UTIL_CLAMP=y                      # 启用调度利用率限制
+          CONFIG_SCHED_WALT=y                            # 启用 WALT 负载跟踪
+          CONFIG_THERMAL_GOV_FAIR_SHARE=y                # 启用公平分享散热调速器
           CONFIG_THERMAL_GOV_POWER_ALLOCATOR=y          # 启用电源分配散热调速器
-          CONFIG_UCLAMP_TASK=y          # 允许任务级别利用率限制
-          
-          #### 内存管理
-          CONFIG_ION=y                      # 启用 ION 内存管理器 (Android 必需)
-          CONFIG_MEMCG=y                    # 启用内存控制组 (cgroups)
-          CONFIG_BLK_DEV_ZRAM_DISCARD=y          # 允许 ZRAM 处理 discard 请求
-          CONFIG_LRU_GEN=y          # 启用多代 LRU 算法
-          CONFIG_TRANSPARENT_HUGEPAGE=y          # 启用透明大页
+          CONFIG_UCLAMP_TASK=y                           # 允许任务级别利用率限制
+
+          # 内存管理
+          CONFIG_ION=y                                   # 启用 ION 内存管理器 (Android 必需)
+          CONFIG_MEMCG=y                                 # 启用内存控制组 (cgroups)
+          CONFIG_BLK_DEV_ZRAM_DISCARD=y                  # 允许 ZRAM 处理 discard 请求
+          CONFIG_LRU_GEN=y                              # 启用多代 LRU 算法
+          CONFIG_TRANSPARENT_HUGEPAGE=y                  # 启用透明大页
           CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n          # 不总是强制使用透明大页
           CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y          # 允许通过 madvise 选择性使用透明大页
-          CONFIG_ZRAM=y          # 启用 ZRAM 内存压缩
-          CONFIG_ZRAM_LZ4=y          # ZRAM 使用 LZ4 压缩
-          CONFIG_ZRAM_MULTI_COMP=y          # 允许 ZRAM 使用多种压缩算法
-          CONFIG_ZRAM_ZSTD=y          # ZRAM 使用 ZSTD 压缩
-          CONFIG_ZSMALLOC=y          # 启用 ZSMALLOC 内存分配器
-          
-          # 网络
-          CONFIG_BPF_STREAM_PARSER=y          # 启用 BPF 流解析器
-          CONFIG_BQL=y                        # 启用 Byte Queue Limits
-          CONFIG_DEFAULT_NET_SCH="cake"       # 默认网络调度器为 CAKE
-          CONFIG_NET_SCH_CAKE=y               # 启用 CAKE 队列管理
-          CONFIG_NET_SCH_FQ=y                 # 启用公平队列 (FQ) 调度器
-          CONFIG_NET_SCH_FQ_CODEL=y           # 启用 FQ_CoDel 调度器
-          CONFIG_DEFAULT_TCP_CONG="bbr"       # 默认 TCP 拥塞控制为 BBR
-          CONFIG_TCP_CONG_ADVANCED=y          # 启用高级 TCP 拥塞控制
-          CONFIG_TCP_CONG_BBR=y               # 启用 BBR 拥塞控制
-          CONFIG_TCP_CONG_CUBIC=y             # 启用 CUBIC 拥塞控制
-          CONFIG_TCP_CONG_HTCP=y              # 启用 H-TCP 拥塞控制
-          CONFIG_TCP_CONG_WESTWOOD=y          # 启用 Westwood 拥塞控制
-          CONFIG_TCP_CONG_RENO=y              # 启用 Reno 拥塞控制
-          CONFIG_TCP_FASTOPEN=y               # 启用 TCP Fast Open
-          CONFIG_TCP_SACK=y                   # 启用 TCP SACK
-          CONFIG_TCP_TIMESTAMPS=y             # 启用 TCP 时间戳
-          CONFIG_INET=y                       # 启用 TCP/IP 协议栈
-          CONFIG_IP6_NF_NAT=y                 # 启用 IPv6 NAT
-          CONFIG_IP6_NF_TARGET_MASQUERADE=y   # 启用 IPv6 MASQUERADE
-          CONFIG_IPV6=y                       # 启用 IPv6 协议
-          CONFIG_IP_SET=y                     # 启用 IP Sets 框架
-          CONFIG_IP_SET_BITMAP_IP=y           # IP Set: bitmap:ip 类型
-          CONFIG_IP_SET_BITMAP_IPMAC=y        # IP Set: bitmap:ip,mac 类型
-          CONFIG_IP_SET_BITMAP_PORT=y         # IP Set: bitmap:port 类型
-          CONFIG_IP_SET_HASH_IP=y             # IP Set: hash:ip 类型
-          CONFIG_IP_SET_HASH_IPMAC=y          # IP Set: hash:ip,mac 类型
-          CONFIG_IP_SET_HASH_IPMARK=y         # IP Set: hash:ip,mark 类型
-          CONFIG_IP_SET_HASH_IPPORT=y         # IP Set: hash:ip,port 类型
-          CONFIG_IP_SET_HASH_IPPORTIP=y       # IP Set: hash:ip,port,ip 类型
-          CONFIG_IP_SET_HASH_IPPORTNET=y      # IP Set: hash:ip,port,net 类型
-          CONFIG_IP_SET_HASH_MAC=y            # IP Set: hash:mac 类型
-          CONFIG_IP_SET_HASH_NET=y            # IP Set: hash:net 类型
-          CONFIG_IP_SET_HASH_NETIFACE=y       # IP Set: hash:net,iface 类型
-          CONFIG_IP_SET_HASH_NETNET=y         # IP Set: hash:net,net 类型
-          CONFIG_IP_SET_HASH_NETPORT=y        # IP Set: hash:net,port 类型
-          CONFIG_IP_SET_HASH_NETPORTNET=y     # IP Set: hash:net,port,net 类型
-          CONFIG_IP_SET_LIST_SET=y            # IP Set: list:set 类型
-          CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y # Netfilter: addrtype 匹配
-          CONFIG_NETFILTER_XT_SET=y           # Netfilter: set 匹配
-          CONFIG_NET_SCHED=y                  # 启用网络调度器
-          CONFIG_WIREGUARD=y                  # 启用 WireGuard VPN 支持
-          CONFIG_WIREGUARD_RING_SIZE=1024     # WireGuard 环形缓冲区大小
+          CONFIG_ZRAM=y                                 # 启用 ZRAM 内存压缩
+          CONFIG_ZRAM_LZ4=y                              # ZRAM 使用 LZ4 压缩
+          CONFIG_ZRAM_MULTI_COMP=y                       # 允许 ZRAM 使用多种压缩算法
+          CONFIG_ZRAM_ZSTD=y                            # ZRAM 使用 ZSTD 压缩
+          CONFIG_ZSMALLOC=y                             # 启用 ZSMALLOC 内存分配器
 
-          # 编译与性能优化
-          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y # 使用 -O2 优化级别
-          CONFIG_LOCALVERSION_AUTO=n           # 禁用自动附加 Git Commit ID
-          CONFIG_LTO_CLANG=y                   # 启用 Clang LTO (链接时优化)
-          CONFIG_LTO_CLANG_THIN=y              # 启用 Thin LTO (加速编译)
-          CONFIG_LTO_POLLY=y                   # 启用 Polly 优化器 (保留，但需注意兼容性)
-          CONFIG_CRYPTO_LZ4=y                  # 启用 LZ4 加密 API
-          CONFIG_CRYPTO_LZ4HC=y                # 启用 LZ4HC 加密 API
-          CONFIG_CRYPTO_LZ4K=y                 # 启用 LZ4K 加密 API
-          CONFIG_CRYPTO_LZ4KD=y                # 启用 LZ4KD 加密 API
+          # 网络优化
+          CONFIG_BPF_STREAM_PARSER=y                     # 启用 BPF 流解析器
+          CONFIG_BQL=y                                   # 启用 Byte Queue Limits
+          CONFIG_DEFAULT_NET_SCH="cake"                  # 默认网络调度器为 CAKE
+          CONFIG_NET_SCH_CAKE=y                          # 启用 CAKE 队列管理
+          CONFIG_NET_SCH_FQ=y                            # 启用公平队列 (FQ) 调度器
+          CONFIG_NET_SCH_FQ_CODEL=y                      # 启用 FQ_CoDel 调度器
+          CONFIG_DEFAULT_TCP_CONG="bbr"                  # 默认 TCP 拥塞控制为 BBR
+          CONFIG_TCP_CONG_ADVANCED=y                     # 启用高级 TCP 拥塞控制
+          CONFIG_TCP_CONG_BBR=y                          # 启用 BBR 拥塞控制
+          CONFIG_TCP_CONG_CUBIC=y                        # 启用 CUBIC 拥塞控制
+          CONFIG_TCP_CONG_HTCP=y                         # 启用 H-TCP 拥塞控制
+          CONFIG_TCP_CONG_WESTWOOD=y                     # 启用 Westwood 拥塞控制
+          CONFIG_TCP_CONG_RENO=y                         # 启用 Reno 拥塞控制
+          CONFIG_TCP_FASTOPEN=y                          # 启用 TCP Fast Open
+          CONFIG_TCP_SACK=y                              # 启用 TCP SACK
+          CONFIG_TCP_TIMESTAMPS=y                        # 启用 TCP 时间戳
+          CONFIG_INET=y                                  # 启用 TCP/IP 协议栈
+          CONFIG_IP6_NF_NAT=y                            # 启用 IPv6 NAT
+          CONFIG_IP6_NF_TARGET_MASQUERADE=y             # 启用 IPv6 MASQUERADE
+          CONFIG_IPV6=y                                  # 启用 IPv6 协议
+          CONFIG_WIREGUARD=y                            # 启用 WireGuard VPN 支持
+          CONFIG_WIREGUARD_RING_SIZE=1024                # WireGuard 环形缓冲区大小
+
+          # 网络过滤和 IP 集
+          CONFIG_IP_SET=y                                # 启用 IP Sets 框架
+          CONFIG_IP_SET_BITMAP_IP=y                      # IP Set: bitmap:ip 类型
+          CONFIG_IP_SET_BITMAP_IPMAC=y                   # IP Set: bitmap:ip,mac 类型
+          CONFIG_IP_SET_BITMAP_PORT=y                    # IP Set: bitmap:port 类型
+          CONFIG_IP_SET_HASH_IP=y                        # IP Set: hash:ip 类型
+          CONFIG_IP_SET_HASH_IPMAC=y                     # IP Set: hash:ip,mac 类型
+          CONFIG_IP_SET_HASH_IPMARK=y                    # IP Set: hash:ip,mark 类型
+          CONFIG_IP_SET_HASH_IPPORT=y                    # IP Set: hash:ip,port 类型
+          CONFIG_IP_SET_HASH_IPPORTIP=y                  # IP Set: hash:ip,port,ip 类型
+          CONFIG_IP_SET_HASH_IPPORTNET=y                 # IP Set: hash:ip,port,net 类型
+          CONFIG_IP_SET_HASH_MAC=y                       # IP Set: hash:mac 类型
+          CONFIG_IP_SET_HASH_NET=y                       # IP Set: hash:net 类型
+          CONFIG_IP_SET_HASH_NETIFACE=y                 # IP Set: hash:net,iface 类型
+          CONFIG_IP_SET_HASH_NETNET=y                    # IP Set: hash:net,net 类型
+          CONFIG_IP_SET_HASH_NETPORT=y                   # IP Set: hash:net,port 类型
+          CONFIG_IP_SET_HASH_NETPORTNET=y                # IP Set: hash:net,port,net 类型
+          CONFIG_IP_SET_LIST_SET=y                       # IP Set: list:set 类型
+          CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y            # Netfilter: addrtype 匹配
+          CONFIG_NETFILTER_XT_SET=y                      # Netfilter: set 匹配
+          CONFIG_NET_SCHED=y                             # 启用网络调度器
           
-          # I/O 调度和文件系统优化
-          CONFIG_MQ_IOSCHED_BFQ=y           # 启用 BFQ I/O 调度器
-          CONFIG_BFQ_ALLOC_BATCH=y          # BFQ: 启用批量分配
-          CONFIG_BFQ_GROUP_IOSCHED=y        # BFQ: 启用组 I/O 调度
-          CONFIG_BLK_CGROUP_IOCOST=y        # 启用块 cgroup I/O 成本
-          CONFIG_BLK_MQ=y                   # 启用多队列块层
-          CONFIG_BLK_MQ_PCI=y               # 启用 PCI 多队列块层
-          CONFIG_BLK_WBT=y                  # 启用写回限速 (WBT)
-          CONFIG_IO_URING=y                 # 启用 I/O Uring 框架 (GKI 推荐)
-          CONFIG_IO_URING_ASYNC=y           # 启用 I/O Uring 异步支持
-          CONFIG_PAGE_BOOST=y               # 启用页面提升 (性能优化)
-          CONFIG_SWAP_ASYNC_IO=y            # 启用异步 SWAP I/O
-          CONFIG_TMPFS_POSIX_ACL=y          # TMPFS: 启用 POSIX ACL
-          CONFIG_TMPFS_XATTR=y              # TMPFS: 启用扩展属性
+          # 编译与性能优化
+          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y           # 使用 -O2 优化级
+          CONFIG_LOCALVERSION_AUTO=n                     # 禁用自动附加 Git Commit ID
+          CONFIG_LTO_CLANG=y                             # 启用 Clang LTO (链接时优化)
+          CONFIG_LTO_CLANG_THIN=y                        # 启用 Thin LTO (加速编译)
+          CONFIG_LTO_POLLY=y                             # 启用 Polly 优化器
+          
+          # 加密与压缩
+          CONFIG_CRYPTO_LZ4=y                            # 启用 LZ4 加密 API
+          CONFIG_CRYPTO_LZ4HC=y                          # 启用 LZ4HC 加密 API
+          CONFIG_CRYPTO_LZ4K=y                           # 启用 LZ4K 加密 API
+          CONFIG_CRYPTO_LZ4KD=y                          # 启用 LZ4KD 加密 API
+          
+          # I/O 调度和存储优化
+          CONFIG_MQ_IOSCHED_BFQ=y                       # 启用 BFQ I/O 调度器
+          CONFIG_BFQ_ALLOC_BATCH=y                      # BFQ: 启用批量分配
+          CONFIG_BFQ_GROUP_IOSCHED=y                   # BFQ: 启用组 I/O 调度
+          CONFIG_BLK_CGROUP_IOCOST=y                    # 启用块 cgroup I/O 成本
+          CONFIG_BLK_MQ=y                               # 启用多队列块层
+          CONFIG_BLK_MQ_PCI=y                           # 启用 PCI 多队列块层
+          CONFIG_BLK_WBT=y                              # 启用写回限速 (WBT)
+          CONFIG_IO_URING=y                             # 启用 I/O Uring 框架
+          CONFIG_IO_URING_ASYNC=y                       # 启用 I/O Uring 异步支持
+          CONFIG_PAGE_BOOST=y                           # 启用页面提升
+          CONFIG_SWAP_ASYNC_IO=y                        # 启用异步 SWAP I/O
+          
+          # 文件系统特性
+          CONFIG_TMPFS_POSIX_ACL=y                      # TMPFS: 启用 POSIX ACL
+          CONFIG_TMPFS_XATTR=y                          # TMPFS: 启用扩展属性
+          
+          # 硬件特定支持
+          CONFIG_BT_QCA=y                               # 启用高通蓝牙驱动
+          CONFIG_NVME_MULTIPATH=y                       # 启用 NVMe 多路径支持
+          CONFIG_NVME_TARGET=y                          # 启用 NVMe 目标支持
           
           EOF
           
