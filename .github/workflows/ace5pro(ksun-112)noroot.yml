@@ -78,7 +78,7 @@ jobs:
         uses: actions/cache@v3
         with:
          path: /home/runner/.ccache
-         key: ${{ runner.os }}-${{ github.repository }}-v2_ksun-112
+         key: ${{ runner.os }}-${{ github.repository }}-v2_112
          restore-keys: |
           ${{ runner.os }}-${{ github.repository }}-
           ${{ runner.os }}-
@@ -139,7 +139,7 @@ jobs:
          fi
          patch -p1 --fuzz=3 < scope_min_manual_hooks_v1.6.patch
          echo "✅ SUSFS 和 scope_min_manual_hooks_v1.6 应用完成"
-          
+
       - name: Apply lz4kd Patches
         run: |
          set -e
