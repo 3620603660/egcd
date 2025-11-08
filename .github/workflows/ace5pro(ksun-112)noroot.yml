@@ -435,5 +435,5 @@ jobs:
       - name: Upload AnyKernel3 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AnyKernel3_oneplus_ace5pro_${{ env.KSUVER }}_ksun_112
+          name: AnyKernel3_oneplus_ace5pro_${{ env.KSUVER }}_noroot_112
           path: kernel_workspace/kernel_platform/dist/AnyKernel3/*
