@@ -161,6 +161,8 @@ jobs:
           
           # KSU 与 SUSFS 配置
           cat <<EOF >> ${CONFIG_FILE}
+          CONFIG_KSU=y          # 启用 KernelSU 主功能
+          CONFIG_KSU_MANUAL_HOOK=n          # 禁用手动 Hook (使用 SUSFS 自动 Hook)
           CONFIG_KSU_SUSFS=y          # 启用 KernelSU SUSFS 模块
           CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y          # 启用 Magic Mount 支持
           CONFIG_KSU_SUSFS_SUS_PATH=y          # 启用 SUSFS 路径隐藏
