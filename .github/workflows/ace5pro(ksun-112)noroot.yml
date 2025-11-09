@@ -118,18 +118,6 @@ jobs:
         run: |
           echo "TAG_SUFFIX=${{ github.event.inputs.KernelSU_Nex_tag }}" >> $GITHUB_ENV
           
-      - name: Set up SUSFS & apply patches
-        run: |
-         set -e
-         cd kernel_workspace
-         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}
-         git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU_patch.git
-         git clone https://github.com/WildPlusKernel/kernel_patches.git
-         git clone https://github.com/egcd521/GKI_KernelSU_SUSFS.git zzh_patch
-         cd kernel_platform
-         echo "正在拉取susfs补丁"
-         cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch ./common/
-
       - name: 设置内核优化配置
         run: |
           cd kernel_workspace/kernel_platform
