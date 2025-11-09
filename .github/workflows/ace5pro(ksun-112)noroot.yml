@@ -298,75 +298,71 @@ jobs:
    
       - name: Build Kernel
         run: |
-         # 🧩 下载并配置 Clang 19.0.0git（保留系统 Clang）
+         # 准备 Clang 工具链
          # ===============================
-
-         # 进入 clang 预编译目录
-         cd /home/runner/work/egcd/egcd/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86
-
+         CLANG_DIR="/home/runner/work/egcd/egcd/clang_toolchain"
+         mkdir -p "$CLANG_DIR"
+         
          echo "⬇️ 下载 Clang 19.0.0git..."
-         wget -q https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
-
-         echo "📦 解压中..."
-         # 解压到指定目录 clang-19.0.0git
-         mkdir -p clang-19.0.0git
-         tar -xvf Clang-19.0.0git-20240723.tar.gz -C clang-19.0.0git
-
-         echo "📂 解压后目录结构："
-         ls -l clang-19.0.0git
-
-         # 将下载的 Clang 添加到 PATH（优先使用下载的版本）
-         export PATH="$(pwd)/clang-19.0.0git/bin:$PATH"
-
-         # 验证 Clang 版本是否正确加载
-         echo "🔍 当前 Clang 版本："
-         clang --version || { echo "❌ 未找到 clang，请检查 PATH！"; exit 1; }
-
-         # 验证 clang 版本是否为 19 开头
-         CLANG_VERSION=$(clang --version | head -n 1 | grep -o "19\.")
-         if [ -z "$CLANG_VERSION" ]; then
-            echo "⚠️ 警告：当前 clang 版本不是 19.x，可能 PATH 配置错误！"
-         fi
-
-         echo "✅ Clang 环境配置完成"
-         # 回到源码目录
+         wget -qO- https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz | tar -xz -C "$CLANG_DIR"
+         
+         # 定义工具链二进制文件的绝对路径
+         CLANG_PATH="$CLANG_DIR/bin/clang"
+         LLD_PATH="$CLANG_DIR/bin/ld.lld"
+         
+         # 验证工具链是否存在且版本正确
+         echo "✅ Clang 已下载到: $CLANG_DIR"
+         echo "---"
+         echo "🔍 验证 Clang 版本:"
+         $CLANG_PATH --version || { echo "❌ Clang 验证失败 ，请检查路径和下载文件！"; exit 1; }
+         echo "---"
+         echo "🔍 验证 LLD 版本:"
+         $LLD_PATH --version || { echo "❌ ld.lld 验证失败，请检查路径！"; exit 1; }
+         echo "---"
+         
+         # 准备编译环境和参数
+         # ===============================
          cd ${{ github.workspace }}/kernel_workspace/kernel_platform/common || { echo "❌ 源码目录不存在"; exit 1; }
-         # 同时加入 ccache（如果存在）
-         export PATH="/usr/lib/ccache:$PATH"
-
-         # 设置固定内核构建时间
-         export KERNEL_TIME="Tue Jul  1 19:48:18 UTC 2025"
-         export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
-         export SOURCE_DATE_EPOCH=$(date -d "$KERNEL_TIME" +%s)
-         # 设置 AFDO 配置文件路径
-         export AFDO_PROFILE="${{ github.workspace }}/kernel_workspace/kernel_platform/afdo/kernel.afdo"
+         
+         # 设置 AFDO 配置文件路径 (注意：请确保此文件存在！)
+         AFDO_PROFILE="${{ github.workspace }}/kernel_workspace/kernel_platform/afdo/kernel.afdo"
          if [ ! -f "$AFDO_PROFILE" ]; then
-           echo "Error: AFDO profile not found at $AFDO_PROFILE"
-         exit 1
+           echo "⚠️ 警告: AFDO 配置文件未找到于 $AFDO_PROFILE"
+           echo "将禁用 AFDO 优化以继续编译..."
+           KCFLAGS="-Wno-error" # 禁用 AFDO
+         else
+           echo "✅ 找到 AFDO 配置文件，将启用优化。"
+           KCFLAGS="-Wno-error -fauto-profile=$AFDO_PROFILE" # 启用 AFDO
          fi
-
-         # 设置一些通用参数（便于后续维护）
-         export KCFLAGS="-Wno-error -fauto-profile=$AFDO_PROFILE"
-         export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+         
+         # 设置构建参数，明确指定 CC 和 LD
+         MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+         CC=$CLANG_PATH \
+         LD=$LLD_PATH \
+         HOSTLD=$LLD_PATH \
          RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
          PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-         LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
-
-         # 进入源码目录
-         cd ${{ github.workspace }}/kernel_workspace/kernel_platform/common || { echo "❌ 源码目录不存在"; exit 1; }
+         O=out"
+         
+         # 开始编译
+         # ===============================
+         echo "⚙️ 开始编译内核..."
          rm -rf out
-
-         # 执行 defconfig
-         export KBUILD_CFLAGS="-fpolly -flto=thin"
-         make -j$(nproc) $MAKE_ARGS gki_defconfig
-
-         # 编译全部目标
-         make -j$(nproc) $MAKE_ARGS all
-
+         
+         # 1. 执行 defconfig
+         # 注意：将 LTO 和 Polly 相关的 CFLAGS 放在这里，而不是全局 KCFLAGS
+         make -j$(nproc) $MAKE_ARGS KBUILD_CFLAGS="-fpolly -flto=thin" gki_defconfig
+         
+         # 2. 编译内核
+         # 将 KCFLAGS 在这里传入，它会被追加到编译命令中
+         make -j$(nproc) $MAKE_ARGS KCFLAGS="$KCFLAGS" all
+         
+         echo "✅ 内核编译完成！"
+         
          # 创建输出目录并复制 Image
          mkdir -p ../dist
          cp out/arch/arm64/boot/Image ../dist/
-         
+
       - name: 验证内核构建时间
         run: |
          strings kernel_workspace/kernel_platform/common/out/vmlinux | grep "UTC"
