@@ -142,7 +142,7 @@ jobs:
           CONFIG_F2FS_ATOMIC_WRITE=y                     # 启用 F2FS 原子写
 
           # CPU 和电源管理
-          CONFIG_CPUFREQ_BOOST=y                         # 启用 CPU 频率提升
+          # CONFIG_CPUFREQ_BOOST=y                         # 启用 CPU 频率提升
           CONFIG_CPU_FREQ=y                              # 启用 CPU 频率调节
           CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y                 # 启用基于调度器利用率的调速器
           CONFIG_CPU_FREQ_STAT=y                          # 收集 CPU 频率统计信息
@@ -151,7 +151,7 @@ jobs:
           CONFIG_CPU_IDLE_GOV_TEO=y                      # 启用 TEO 空闲调速器
           CONFIG_CPU_IDLE_STATE_RESIDENCY=y              # 跟踪 CPU 空闲状态驻留时间
           CONFIG_CPU_IDLE_TIME_IN_ACCOUNTING=y          # 将 CPU 空闲时间计入账户
-          CONFIG_DEVFREQ_BOOST=y                         # 启用设备频率提升
+          # CONFIG_DEVFREQ_BOOST=y                         # 启用设备频率提升
           CONFIG_PM_DOMAIN_CPU_GOV=y                      # 启用 CPU 电源域调速器
           CONFIG_PM_WAKELOCKS=y                          # 启用唤醒锁
           CONFIG_PM_WAKELOCKS_GC=y                       # 启用唤醒锁垃圾回收
