@@ -1,0 +1,454 @@
+name: ace5pro(ksun-89)
+on:
+  workflow_dispatch:
+    inputs:
+      CPU:
+        description: "分支"
+        required: true
+        default: 'sm8750'
+      FEIL:
+        description: "配置文件"
+        required: true
+        default: 'oneplus_ace5_pro'
+      ANDROID_VERSION:
+        description: "内核安卓版本"
+        required: true
+        default: 'android15'
+      KERNEL_VERSION:
+        description: "内核版本"
+        required: true
+        default: '6.6'
+      KERNEL_NAME:
+        description: "修改内核名称"
+        required: true
+        default: '-android15-8-g29d86c5fc9dd-abogki428889875'
+      local_version:
+        description: '输入内核后缀名（如-v8）'
+        required: false
+        default: '-4k'
+        type: string
+      remove_default_4k:
+        description: '是否删除默认的 -4k 后缀？（勾选则删除）'
+        required: false
+        default: false
+        type: boolean
+      kernel_time:
+        description: '内核构建时间（UTC 时间字符串，例如 "Mon May 12 09:09:59 UTC 2025"）'
+        required: false
+        default: 'Tue Jul  1 19:48:18 UTC 2025'
+        type: string
+      KernelSU_Nex_tag:
+        description: "自定义版本来源后缀（如:见清）"
+        required: false
+        default: "-by-Ciallo投降喵🙌🏻"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+      TOKEN: ${{ secrets.TOKEN }}
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 8192
+          temp-reserve-mb: 2048
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          
+      - name: Configure Git
+        run: |
+         git config --global user.name "build"
+         git config --global user.email "3620603668@qq.com"
+
+      # 1. 拉取仓库  
+      - name: Checkout  
+        uses: actions/checkout@v4  
+
+      # 2. 安装构建依赖（包括 ccache）  
+      - name: Install Dependencies  
+        run: |  
+         sudo apt-get update  
+         sudo apt-get install -y python3 git curl ccache libelf-dev
+         sudo apt-get install -y dos2unix  
+
+      # 3. 恢复 ccache 缓存  
+      - name: Restore ccache
+        uses: actions/cache@v3
+        with:
+         path: /home/runner/.ccache
+         key: ${{ runner.os }}-${{ github.repository }}-V3_ksun-89
+         restore-keys: |
+          ${{ runner.os }}-${{ github.repository }}-
+          ${{ runner.os }}-
+          ccache-
+
+      # 4. 设置 ccache 环境变量  
+      - name: Setup ccache environment  
+        run: |  
+         echo "CCACHE_DIR=/home/runner/.ccache" >> $GITHUB_ENV  
+         echo "CCACHE_MAXSIZE=8G" >> $GITHUB_ENV  
+         echo "CCACHE_COMPILERCHECK=%compiler% -dumpmachine; %compiler% -dumpversion" >> $GITHUB_ENV  
+         echo "CCACHE_NOHASHDIR=true" >> $GITHUB_ENV  
+         echo "CCACHE_HARDLINK=true" >> $GITHUB_ENV  
+         echo "CCACHE_BASEDIR=${{ github.workspace }}" >> $GITHUB_ENV  
+         echo "CCACHE_LOGFILE=${{ github.workspace }}/ccache.log" >> $GITHUB_ENV  
+         echo "/usr/lib/ccache" >> $GITHUB_PATH  
+         
+      - name: Show ccache stats
+        run: |
+         ccache -s || true
+
+      - name: Install repo tool
+        run: |
+         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+         chmod a+x ~/repo
+         sudo mv ~/repo /usr/local/bin/repo
+
+      - name: Initialize repo and sync
+        run: |
+         mkdir kernel_workspace && cd kernel_workspace
+         repo init -u https://github.com/SQMY-dor/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
+         repo --trace sync -c -j$(nproc --all) --no-tags
+         rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
+         rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+
+      - name: Export suffix
+        run: |
+          echo "TAG_SUFFIX=${{ github.event.inputs.KernelSU_Nex_tag }}" >> $GITHUB_ENV
+          
+      - name: Setup KernelSU-Next
+        run: |
+          cd kernel_workspace/kernel_platform
+          curl -LSs "https://raw.githubusercontent.com/pershoot/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
+          cd KernelSU-Next
+
+          # 获取 next 分支 commit 数量并加上 10200
+          KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/commits?sha=next&per_page=1" \
+            | grep -i "link:" \
+            | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 10200)
+
+          {
+            echo "KSUVER<<EOF"
+            echo "${KSU_VERSION}"
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          sed -i "s/DKSU_VERSION=11998/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+
+          # 获取最近的 tag (例: v1.1.1)
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+          # 拼接 tag+后缀（后缀来自 Export suffix 步骤注入）
+          CUSTOM_TAG="${TAG}${TAG_SUFFIX}"
+
+          {
+            echo "KSUTAG<<EOF"
+            echo "${CUSTOM_TAG}"
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          # 替换 Makefile 里的默认 DKSU_VERSION_TAG
+          sed -i "s|^\s*KSU_VERSION_TAG :=.*|KSU_VERSION_TAG := ${CUSTOM_TAG}|" kernel/Makefile
+          
+          # 打印确认
+          echo "👉 KernelSU-Next Tag = ${CUSTOM_TAG}"
+          
+      - name: Set up SUSFS & apply patches
+        run: |
+         set -e
+         cd kernel_workspace
+         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}
+         git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU_patch.git
+         git clone https://$TOKEN@github.com/3620603660/boot.git
+         git clone https://github.com/WildPlusKernel/kernel_patches.git
+         git clone https://github.com/egcd521/GKI_KernelSU_SUSFS.git zzh_patch
+         cd kernel_platform
+         echo "正在拉取susfs补丁"
+         cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch ./common/
+         cp ../kernel_patches/next/scope_min_manual_hooks_v1.5.patch ./common/
+         cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
+         cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
+         cp ../zzh_patch/next-patch/* ./KernelSU-Next/
+         cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
+         cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
+         cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./common/include/linux || true
+         cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib || true
+         cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto || true
+         cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/ || true
+         cp ../boot/1.patch ./common/
+         cd ./common/
+         # if [[ "${{ github.event.inputs.FEIL }}" == "oneplus_13" || "${{ github.event.inputs.FEIL }}" == "oneplus_ace5_pro" ]]; then
+         # sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch
+         # sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch
+         # fi
+          patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch || true
+          # Replace next_hooks.patch with syscall_hooks.patch
+          cp ../../kernel_patches/69_hide_stuff.patch ./
+          patch -p1 -F 3 < 69_hide_stuff.patch
+          patch -p1 --fuzz=3 < scope_min_manual_hooks_v1.5.patch
+          patch -s -p1 -F 3 < 1.patch || true
+          echo "✅ SUSFS 和 scope_min_manual_hooks_v1.5 patch 应用完成"
+
+      - name: 设置内核优化配置
+        run: |
+          cd kernel_workspace/kernel_platform
+          CONFIG_FILE=./common/arch/arm64/configs/gki_defconfig
+          # 向 gki_defconfig 中追加配置     
+          cat <<EOF >> ./common/arch/arm64/configs/gki_defconfig
+          
+          # KSU 与 SUSFS 配置
+          cat <<EOF >> ${CONFIG_FILE}
+          # KSU 与 SUSFS 配置
+          CONFIG_KSU=y          # 启用 KernelSU 主功能
+          CONFIG_KSU_MANUAL_HOOK=n          # 禁用手动 Hook (使用 SUSFS 自动 Hook)
+          CONFIG_KSU_SUSFS=y          # 启用 KernelSU SUSFS 模块
+          CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y          # 启用 Magic Mount 支持
+          CONFIG_KSU_SUSFS_SUS_PATH=y          # 启用 SUSFS 路径隐藏
+          CONFIG_KSU_SUSFS_SUS_MOUNT=y          # 启用 SUSFS 挂载隐藏
+          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y          # 自动添加默认 KSU 挂载
+          CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y          # 自动添加 SUSFS 绑定挂载
+          CONFIG_KSU_SUSFS_SUS_KSTAT=y          # 启用 SUSFS KSTAT 隐藏
+          CONFIG_KSU_SUSFS_TRY_UMOUNT=y          # 启用尝试卸载功能
+          CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y          # 自动尝试卸载绑定挂载
+          CONFIG_KSU_SUSFS_SPOOF_UNAME=y          # 启用 UNAME 欺骗
+          CONFIG_KSU_SUSFS_ENABLE_LOG=y          # 启用 SUSFS 日志
+          CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y          # 隐藏 KSU/SUSFS 符号
+          CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y          # 欺骗命令行/启动配置
+          CONFIG_KSU_SUSFS_OPEN_REDIRECT=y          # 启用 OPEN 重定向
+          CONFIG_KSU_SUSFS_SUS_SU=n          # 禁用 SUS SU (通常不需要)
+          CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n          # 禁用 SUSFS OverlayFS (通常不需要)
+
+          # F2FS 文件系统优化
+          CONFIG_F2FS_FS_COMPRESSION=y                 # 启用 F2FS 文件系统压缩
+          CONFIG_F2FS_FS_LZORLE=y                      # 启用 F2FS 的 LZORLE 压缩算法
+          CONFIG_F2FS_IO_QUEUE_ENHANCEMENT=y            # 启用 F2FS I/O 队列增强
+          CONFIG_F2FS_IO_LATENCY_ENHANCEMENT=y          # 启用 F2FS I/O 延迟增强
+          CONFIG_F2FS_FIX_UNNECESSARY_DIO_SPLIT=y      # 修复不必要的 DIO 分割
+          CONFIG_F2FS_SUPPORT_NILFS_CHKALLOC=y          # 启用 NILFS 检查分配支持
+          CONFIG_F2FS_CHECK_CHKSUM_TYPE=y               # 启用 F2FS 校验和类型检查
+          CONFIG_F2FS_IOSTAT=y                           # 启用 F2FS I/O 统计
+          CONFIG_F2FS_SUPPORT_PINNED_FILE=y             # 启用 F2FS 固定文件支持
+          CONFIG_F2FS_SUPPORT_SSR=y                      # 启用 F2FS SSR 支持
+          CONFIG_F2FS_SUPPORT_VOLATILE_WRITE=y          # 启用 F2FS 易失性写入支持
+          CONFIG_F2FS_FS_LZ4=y                           # 启用 LZ4 压缩算法
+          CONFIG_F2FS_FS_ZSTD=y                          # 启用 ZSTD 压缩算法
+          CONFIG_F2FS_ATOMIC_WRITE=y                     # 启用 F2FS 原子写
+
+          # CPU 和电源管理
+          CONFIG_CPUFREQ_BOOST=y                         # 启用 CPU 频率提升
+          CONFIG_CPU_FREQ=y                              # 启用 CPU 频率调节
+          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y                 # 启用基于调度器利用率的调速器
+          CONFIG_CPU_FREQ_STAT=y                          # 收集 CPU 频率统计信息
+          CONFIG_CPU_HOTPLUG=y                           # 启用 CPU 热插拔
+          CONFIG_CPU_IDLE=y                              # 启用 CPU 空闲状态管理
+          CONFIG_CPU_IDLE_GOV_TEO=y                      # 启用 TEO 空闲调速器
+          CONFIG_CPU_IDLE_STATE_RESIDENCY=y              # 跟踪 CPU 空闲状态驻留时间
+          CONFIG_CPU_IDLE_TIME_IN_ACCOUNTING=y          # 将 CPU 空闲时间计入账户
+          CONFIG_DEVFREQ_BOOST=y                         # 启用设备频率提升
+          CONFIG_PM_DOMAIN_CPU_GOV=y                      # 启用 CPU 电源域调速器
+          CONFIG_PM_WAKELOCKS=y                          # 启用唤醒锁
+          CONFIG_PM_WAKELOCKS_GC=y                       # 启用唤醒锁垃圾回收
+          CONFIG_QCOM_CPU_CLUSTER_POWER_CONTROL=y        # 启用高通 CPU 集群功耗控制
+          CONFIG_SCHED_CORE=y                            # 启用核心调度
+          CONFIG_SCHED_EAS=y                              # 启用能源感知调度 (EAS)
+          CONFIG_SCHED_HRTICK=y                          # 启用高精度调度时钟
+          CONFIG_SCHED_MC=y                              # 启用多核调度
+          CONFIG_SCHED_THERMAL_PRESSURE=y                # 允许调度器感知热压力
+          CONFIG_SCHED_TUNE=y                            # 启用调度器调优
+          CONFIG_SCHED_UTIL_CLAMP=y                      # 启用调度利用率限制
+          CONFIG_SCHED_WALT=y                            # 启用 WALT 负载跟踪
+          CONFIG_THERMAL_GOV_FAIR_SHARE=y                # 启用公平分享散热调速器
+          CONFIG_THERMAL_GOV_POWER_ALLOCATOR=y          # 启用电源分配散热调速器
+          CONFIG_UCLAMP_TASK=y                           # 允许任务级别利用率限制
+
+          # 内存管理
+          CONFIG_ION=y                                   # 启用 ION 内存管理器 (Android 必需)
+          CONFIG_MEMCG=y                                 # 启用内存控制组 (cgroups)
+          CONFIG_BLK_DEV_ZRAM_DISCARD=y                  # 允许 ZRAM 处理 discard 请求
+          CONFIG_LRU_GEN=y                              # 启用多代 LRU 算法
+          CONFIG_TRANSPARENT_HUGEPAGE=y                  # 启用透明大页
+          CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS=n          # 不总是强制使用透明大页
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y          # 允许通过 madvise 选择性使用透明大页
+          CONFIG_ZRAM=y                                 # 启用 ZRAM 内存压缩
+          CONFIG_ZRAM_LZ4=y                              # ZRAM 使用 LZ4 压缩
+          CONFIG_ZRAM_MULTI_COMP=y                       # 允许 ZRAM 使用多种压缩算法
+          CONFIG_ZRAM_ZSTD=y                            # ZRAM 使用 ZSTD 压缩
+          CONFIG_ZSMALLOC=y                             # 启用 ZSMALLOC 内存分配器
+
+          # 网络优化
+          CONFIG_BPF_STREAM_PARSER=y                     # 启用 BPF 流解析器
+          CONFIG_BQL=y                                   # 启用 Byte Queue Limits
+          CONFIG_DEFAULT_NET_SCH="cake"                  # 默认网络调度器为 CAKE
+          CONFIG_NET_SCH_CAKE=y                          # 启用 CAKE 队列管理
+          CONFIG_NET_SCH_FQ=y                            # 启用公平队列 (FQ) 调度器
+          CONFIG_NET_SCH_FQ_CODEL=y                      # 启用 FQ_CoDel 调度器
+          CONFIG_DEFAULT_TCP_CONG="bbr"                  # 默认 TCP 拥塞控制为 BBR
+          CONFIG_TCP_CONG_ADVANCED=y                     # 启用高级 TCP 拥塞控制
+          CONFIG_TCP_CONG_BBR=y                          # 启用 BBR 拥塞控制
+          CONFIG_TCP_CONG_CUBIC=y                        # 启用 CUBIC 拥塞控制
+          CONFIG_TCP_CONG_HTCP=y                         # 启用 H-TCP 拥塞控制
+          CONFIG_TCP_CONG_WESTWOOD=y                     # 启用 Westwood 拥塞控制
+          CONFIG_TCP_CONG_RENO=y                         # 启用 Reno 拥塞控制
+          CONFIG_TCP_FASTOPEN=y                          # 启用 TCP Fast Open
+          CONFIG_TCP_SACK=y                              # 启用 TCP SACK
+          CONFIG_TCP_TIMESTAMPS=y                        # 启用 TCP 时间戳
+          CONFIG_INET=y                                  # 启用 TCP/IP 协议栈
+          CONFIG_IP6_NF_NAT=y                            # 启用 IPv6 NAT
+          CONFIG_IP6_NF_TARGET_MASQUERADE=y             # 启用 IPv6 MASQUERADE
+          CONFIG_IPV6=y                                  # 启用 IPv6 协议
+          CONFIG_WIREGUARD=y                            # 启用 WireGuard VPN 支持
+          CONFIG_WIREGUARD_RING_SIZE=1024                # WireGuard 环形缓冲区大小
+
+          # 网络过滤和 IP 集
+          CONFIG_IP_SET=y                                # 启用 IP Sets 框架
+          CONFIG_IP_SET_BITMAP_IP=y                      # IP Set: bitmap:ip 类型
+          CONFIG_IP_SET_BITMAP_IPMAC=y                   # IP Set: bitmap:ip,mac 类型
+          CONFIG_IP_SET_BITMAP_PORT=y                    # IP Set: bitmap:port 类型
+          CONFIG_IP_SET_HASH_IP=y                        # IP Set: hash:ip 类型
+          CONFIG_IP_SET_HASH_IPMAC=y                     # IP Set: hash:ip,mac 类型
+          CONFIG_IP_SET_HASH_IPMARK=y                    # IP Set: hash:ip,mark 类型
+          CONFIG_IP_SET_HASH_IPPORT=y                    # IP Set: hash:ip,port 类型
+          CONFIG_IP_SET_HASH_IPPORTIP=y                  # IP Set: hash:ip,port,ip 类型
+          CONFIG_IP_SET_HASH_IPPORTNET=y                 # IP Set: hash:ip,port,net 类型
+          CONFIG_IP_SET_HASH_MAC=y                       # IP Set: hash:mac 类型
+          CONFIG_IP_SET_HASH_NET=y                       # IP Set: hash:net 类型
+          CONFIG_IP_SET_HASH_NETIFACE=y                 # IP Set: hash:net,iface 类型
+          CONFIG_IP_SET_HASH_NETNET=y                    # IP Set: hash:net,net 类型
+          CONFIG_IP_SET_HASH_NETPORT=y                   # IP Set: hash:net,port 类型
+          CONFIG_IP_SET_HASH_NETPORTNET=y                # IP Set: hash:net,port,net 类型
+          CONFIG_IP_SET_LIST_SET=y                       # IP Set: list:set 类型
+          CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y            # Netfilter: addrtype 匹配
+          CONFIG_NETFILTER_XT_SET=y                      # Netfilter: set 匹配
+          CONFIG_NET_SCHED=y                             # 启用网络调度器
+          
+          # 编译与性能优化
+          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y           # 使用 -O2 优化级
+          CONFIG_LOCALVERSION_AUTO=n                     # 禁用自动附加 Git Commit ID
+          CONFIG_LTO_CLANG=y                             # 启用 Clang LTO (链接时优化)
+          CONFIG_LTO_CLANG_THIN=y                        # 启用 Thin LTO (加速编译)
+          CONFIG_LTO_POLLY=y                             # 启用 Polly 优化器
+          
+          # 加密与压缩
+          CONFIG_CRYPTO_LZ4=y                            # 启用 LZ4 加密 API
+          CONFIG_CRYPTO_LZ4HC=y                          # 启用 LZ4HC 加密 API
+          CONFIG_CRYPTO_LZ4K=y                           # 启用 LZ4K 加密 API
+          CONFIG_CRYPTO_LZ4KD=y                          # 启用 LZ4KD 加密 API
+          
+          # I/O 调度和存储优化
+          CONFIG_MQ_IOSCHED_BFQ=y                       # 启用 BFQ I/O 调度器
+          CONFIG_BFQ_ALLOC_BATCH=y                      # BFQ: 启用批量分配
+          CONFIG_BFQ_GROUP_IOSCHED=y                   # BFQ: 启用组 I/O 调度
+          CONFIG_BLK_CGROUP_IOCOST=y                    # 启用块 cgroup I/O 成本
+          CONFIG_BLK_MQ=y                               # 启用多队列块层
+          CONFIG_BLK_MQ_PCI=y                           # 启用 PCI 多队列块层
+          CONFIG_BLK_WBT=y                              # 启用写回限速 (WBT)
+          CONFIG_IO_URING=y                             # 启用 I/O Uring 框架
+          CONFIG_IO_URING_ASYNC=y                       # 启用 I/O Uring 异步支持
+          CONFIG_PAGE_BOOST=y                           # 启用页面提升
+          CONFIG_SWAP_ASYNC_IO=y                        # 启用异步 SWAP I/O
+          
+          # 文件系统特性
+          CONFIG_TMPFS_POSIX_ACL=y                      # TMPFS: 启用 POSIX ACL
+          CONFIG_TMPFS_XATTR=y                          # TMPFS: 启用扩展属性
+          
+          # 硬件特定支持
+          CONFIG_BT_QCA=y                               # 启用高通蓝牙驱动
+          CONFIG_NVME_MULTIPATH=y                       # 启用 NVMe 多路径支持
+          CONFIG_NVME_TARGET=y                          # 启用 NVMe 目标支持
+          
+          EOF
+          
+          sed -i 's/check_defconfig//' ./common/build.config.gki
+          git add -A && git commit -a -m "BUILD Kernel with optimizations" || true
+          echo "✅ 内核优化配置已完成"
+
+      - name: Add make name
+        run: |
+         cd kernel_workspace/kernel_platform
+         sed -i '208s|echo ".*"|echo "${KERNELVERSION}${scm_version}${config_localversion}"|' common/scripts/setlocalversion
+         sed -i "s/\${scm_version}/${{ github.event.inputs.KERNEL_NAME }}/g" ./common/scripts/setlocalversion
+         
+      - name: 设置 CONFIG_LOCALVERSION
+        run: |
+         cd kernel_workspace/kernel_platform
+         echo 'CONFIG_LOCALVERSION="${{ github.event.inputs.local_version }}"' >> ./common/arch/arm64/configs/gki_defconfig
+
+      - name: 删除 CONFIG_LOCALVERSION 中的 -4k 后缀（如果勾选）
+        if: ${{ fromJSON(github.event.inputs.remove_default_4k) }}
+        run: |
+         cd kernel_workspace/kernel_platform
+         sed -i 's/-4k//' ./common/arch/arm64/configs/gki_defconfig
+
+      - name: 拉取afdo
+        run: |
+          cd kernel_workspace/kernel_platform/
+          git clone https://github.com/PxxPei/afdo.git
+
+      - name: Set build timestamp
+        run: |         
+         export SOURCE_DATE_EPOCH=$(date -d "Tue Jul  1 19:48:18 UTC 2025" +%s)
+         echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
+   
+      - name: Build Kernel
+        run: |
+         # 加入 clang 到 PATH
+         export PATH="${{ github.workspace }}/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+         # 加入 ccache 到 PATH
+         export PATH="/usr/lib/ccache:$PATH" 
+
+         # 设置固定内核构建时间
+         export KERNEL_TIME="Tue Jul  1 19:48:18 UTC 2025"
+         export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
+         export SOURCE_DATE_EPOCH=$(date -d "$KERNEL_TIME" +%s)
+         
+         # 设置 AFDO 配置文件路径
+         export AFDO_PROFILE="${{ github.workspace }}/kernel_workspace/kernel_platform/afdo/kernel.afdo"
+         if [ ! -f "$AFDO_PROFILE" ]; then
+           echo "Error: AFDO profile not found at $AFDO_PROFILE"
+         exit 1
+         fi
+
+         # 设置一些通用参数（便于后续维护）
+         export KCFLAGS="-Wno-error -fauto-profile=$AFDO_PROFILE"
+         export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+         RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+         PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+         LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
+
+         # 进入源码目录
+         cd ${{ github.workspace }}/kernel_workspace/kernel_platform/common || { echo "❌ 源码目录不存在"; exit 1; }
+         rm -rf out
+
+         # 执行 defconfig
+         export KBUILD_CFLAGS="-fpolly -flto=thin"
+         make -j$(nproc) $MAKE_ARGS gki_defconfig
+
+         # 编译全部目标
+         make -j$(nproc) $MAKE_ARGS all
+
+         # 创建输出目录并复制 Image
+         mkdir -p ../dist
+         cp out/arch/arm64/boot/Image ../dist/
+         
+      - name: 验证内核构建时间
+        run: |
+         strings kernel_workspace/kernel_platform/common/out/vmlinux | grep "UTC"
+
+      - name: Prepare AnyKernel3 package
+        run: |
+          cd kernel_workspace/kernel_platform/dist
+          git clone https://github.com/3620603660/AnyKernel3.git AnyKernel3 --depth=1
+          rm -rf AnyKernel3/.git
+          rm -f AnyKernel3/push.sh
+          cp Image AnyKernel3/
+
+      - name: Upload AnyKernel3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnyKernel3_oneplus_ace5pro_${{ env.KSUVER }}_ksun_112
+          path: kernel_workspace/kernel_platform/dist/AnyKernel3/*
