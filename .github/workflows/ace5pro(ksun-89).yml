@@ -191,7 +191,6 @@ jobs:
           cp ../../kernel_patches/69_hide_stuff.patch ./
           patch -p1 -F 3 < 69_hide_stuff.patch
           patch -p1 --fuzz=3 < scope_min_manual_hooks_v1.5.patch
-          patch -s -p1 -F 3 < 1.patch || true
           echo "✅ SUSFS 和 scope_min_manual_hooks_v1.5 patch 应用完成"
 
       - name: 设置内核优化配置
