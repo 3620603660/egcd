@@ -81,7 +81,7 @@ jobs:
         uses: actions/cache@v3
         with:
          path: /home/runner/.ccache
-         key: ${{ runner.os }}-${{ github.repository }}-v2_ksun-112
+         key: ${{ runner.os }}-${{ github.repository }}-v1_mksu-112
          restore-keys: |
           ${{ runner.os }}-${{ github.repository }}-
           ${{ runner.os }}-
