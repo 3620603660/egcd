@@ -109,66 +109,6 @@ jobs:
       - name: Initialize repo and sync
         run: |
          mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/SQMY-dor/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
-         repo --trace sync -c -j$(nproc --all) --no-tags
-         rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-
-      - name: Export suffix
-        run: |
-          echo "TAG_SUFFIX=${{ github.event.inputs.KernelSU_Nex_tag }}" >> $GITHUB_ENV
-          
-      - name: Setup mksu
-        run: |
-          cd kernel_workspace/kernel_platform
-          curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash -s main
-          cd ./KernelSU
-          KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/5ec1cff/KernelSU/commits?sha=main&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 19993)
-          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-          echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
-          sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
-          
-      - name: Set up SUSFS & apply patches
-        run: |
-         set -e
-         cd kernel_workspace
-         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}
-         git clone https://github.com/ShirkNeko/SukiSU_patch.git
-         git clone https://$TOKEN@github.com/3620603660/boot.git
-
-         # 注意：KernelSU 在 kernel_platform/KernelSU
-         cp ./susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./kernel_platform/KernelSU/
-         cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch ./kernel_platform/common
-         cp ./susfs4ksu/kernel_patches/fs/* ./kernel_platform/common/fs/
-         cp ./susfs4ksu/kernel_patches/include/linux/* ./kernel_platform/common/include/linux/
-         cp ./SukiSU_patch/69_hide_stuff.patch ./kernel_platform/common/
-         cp ./boot/1.patch ./kernel_platform/common/
-
-         cd ./kernel_platform/KernelSU
-         patch -p1 < 10_enable_susfs_for_ksu.patch || true
-
-         wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/mksu_supercalls.patch
-         patch -p1 < mksu_supercalls.patch || true
-
-         wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/fix_umount.patch
-         patch -p1 < fix_umount.patch || true
-         # ❗ 从 KernelSU 目录返回到 kernel_platform
-         cd ..
-         cd ./common
-         PATCH_FILE=50_add_susfs_in_gki-${{ inputs.ANDROID_VERSION }}-${{ inputs.KERNEL_VERSION }}.patch
-         if [[ -f "$PATCH_FILE" ]]; then
-         #sed -i 's/-32,12 +32,38/-32,11 +32,37/g' "$PATCH_FILE"
-         #sed -i '/#include <trace\/hooks\/fs.h>/d' "$PATCH_FILE"
-         patch -p1 < "$PATCH_FILE" || true
-- name: Install repo tool
-        run: |
-         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
-         chmod a+x ~/repo
-         sudo mv ~/repo /usr/local/bin/repo
-
-      - name: Initialize repo and sync
-        run: |
-         mkdir kernel_workspace && cd kernel_workspace
          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
@@ -224,7 +164,6 @@ jobs:
          patch -p1 -N -F 3 < 69_hide_stuff.patch || true
          patch -s -p1 -F 3 < 1.patch || true
          echo "✅ SUSFS 和 boot patch 应用完成"
- 
 
       - name: 设置内核优化配置
         run: |
