@@ -1,4 +1,4 @@
-name: ace5pro(ksun-1XX)noroot
+name: ace5pro(kowsu)noroot
 on:
   workflow_dispatch:
     inputs:
@@ -109,7 +109,7 @@ jobs:
       - name: Initialize repo and sync
         run: |
          mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/3620603660/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
+         repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
@@ -302,41 +302,10 @@ jobs:
    
       - name: Build Kernel
         run: |
-         # 🧩 下载并配置 Clang 19.0.0git（保留系统 Clang）
-         # ===============================
-
-         # 进入 clang 预编译目录
-         cd /home/runner/work/egcd/egcd/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86
-
-         echo "⬇️ 下载 Clang 19.0.0git..."
-         wget -q https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
-
-         echo "📦 解压中..."
-         # 解压到指定目录 clang-19.0.0git
-         mkdir -p clang-19.0.0git
-         tar -xvf Clang-19.0.0git-20240723.tar.gz -C clang-19.0.0git
-
-         echo "📂 解压后目录结构："
-         ls -l clang-19.0.0git
-
-         # 将下载的 Clang 添加到 PATH（优先使用下载的版本）
-         export PATH="$(pwd)/clang-19.0.0git/bin:$PATH"
-
-         # 验证 Clang 版本是否正确加载
-         echo "🔍 当前 Clang 版本："
-         clang --version || { echo "❌ 未找到 clang，请检查 PATH！"; exit 1; }
-
-         # 验证 clang 版本是否为 19 开头
-         CLANG_VERSION=$(clang --version | head -n 1 | grep -o "19\.")
-         if [ -z "$CLANG_VERSION" ]; then
-            echo "⚠️ 警告：当前 clang 版本不是 19.x，可能 PATH 配置错误！"
-         fi
-
-         echo "✅ Clang 环境配置完成"
-         # 回到源码目录
-         cd ${{ github.workspace }}/kernel_workspace/kernel_platform/common || { echo "❌ 源码目录不存在"; exit 1; }
-         # 同时加入 ccache（如果存在）
-         export PATH="/usr/lib/ccache:$PATH"
+         # 加入 clang 到 PATH
+         export PATH="${{ github.workspace }}/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+         # 加入 ccache 到 PATH
+         export PATH="/usr/lib/ccache:$PATH" 
 
          # 设置固定内核构建时间
          export KERNEL_TIME="Tue Jul  1 19:48:18 UTC 2025"
