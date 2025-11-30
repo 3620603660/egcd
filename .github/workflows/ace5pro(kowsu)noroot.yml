@@ -288,7 +288,7 @@ jobs:
           CONFIG_NVME_MULTIPATH=y                # NVMe 多路径支持
           CONFIG_NVME_TARGET=y                   # NVMe 目标支持
           
-EOF
+          EOF
           
           # 移除构建流程中的 check_defconfig 校验
           sed -i 's/check_defconfig//' ./common/build.config.gki
