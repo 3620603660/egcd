@@ -1,0 +1,209 @@
+name: ace5pro(oneplus_ace5_pro-112)noroot
+on:
+  workflow_dispatch:
+    inputs:
+      CPU:
+        description: "分支"
+        required: true
+        default: 'sm8750'
+      FEIL:
+        description: "配置文件"
+        required: true
+        default: 'oneplus_ace5_pro-112'
+      KERNEL_NAME:
+        description: "修改内核名称"
+        required: true
+        default: '-android15-8-g29d86c5fc9dd-abogki428889875'
+      local_version:
+        description: '输入内核后缀名（如-v8）'
+        required: false
+        default: '-4k'
+        type: string
+      kernel_time:
+        description: '内核构建时间（UTC 时间字符串，例如 "Mon May 12 09:09:59 UTC 2025"）'
+        required: false
+        default: 'Tue Jul  1 19:48:18 UTC 2025'
+        type: string
+      
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+      TOKEN: ${{ secrets.TOKEN }}
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 8192
+          temp-reserve-mb: 2048
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          
+      - name: Configure Git
+        run: |
+         git config --global user.name "build"
+         git config --global user.email "3620603668@qq.com"
+
+      - name: Checkout  
+        uses: actions/checkout@v4  
+
+      - name: Install Dependencies  
+        run: |  
+         sudo apt-get update  
+         sudo apt-get install -y python3 git curl ccache libelf-dev dos2unix
+
+      - name: Restore ccache
+        uses: actions/cache@v3
+        with:
+         path: /home/runner/.ccache
+         key: ${{ runner.os }}-${{ github.repository }}-v2_noroot-112
+
+      - name: Setup ccache environment  
+        run: |  
+         echo "CCACHE_DIR=/home/runner/.ccache" >> $GITHUB_ENV  
+         echo "CCACHE_MAXSIZE=8G" >> $GITHUB_ENV  
+         echo "/usr/lib/ccache" >> $GITHUB_PATH  
+         
+      - name: Show ccache stats
+        run: ccache -s || true
+
+      - name: Install repo tool
+        run: |
+         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+         chmod a+x ~/repo
+         sudo mv ~/repo /usr/local/bin/repo
+
+      - name: Initialize repo and sync
+        run: |
+         mkdir kernel_workspace && cd kernel_workspace
+         repo init -u https://github.com/3620603660/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
+         repo --trace sync -c -j$(nproc --all) --no-tags
+
+      - name: 设置内核核心优化配置
+        run: |
+          cd kernel_workspace/kernel_platform
+          CONFIG_FILE=./common/arch/arm64/configs/gki_defconfig
+          
+          # 追加核心优化配置 (10空格缩进, 简洁注释, 保留调试)
+          cat <<EOF >> $CONFIG_FILE
+
+# ============================================================
+# CORE OPTIMIZATION CONFIGS (Formatted & Simplified)
+# ============================================================
+
+          # 调度优化
+          CONFIG_SCHED_EAS=y # 能量感知调度
+          CONFIG_SCHED_EAS_PREFER_IDLE=y # 空闲优先
+          CONFIG_SCHED_EAS_BOOST=y # 性能提升
+          CONFIG_SCHED_TUNE=y # 调度调优
+          CONFIG_SCHEDUTIL_CGROUP_DVFS=y # Cgroup DVFS
+          CONFIG_SCHED_THERMAL_PRESSURE=y # 热压力感知
+
+          # I/O 优化
+          CONFIG_BFQ_GROUP_IOSCHED=y # BFQ 组调度
+          CONFIG_BFQ_CGROUP_DEBUG=y # BFQ 调试
+          CONFIG_BLK_CGROUP_IOCOST=y # I/O 成本控制
+          CONFIG_BLK_CGROUP_IOLATENCY=y # I/O 延迟控制
+
+          # CPU 空闲
+          CONFIG_CPU_IDLE_MULTIPLE_DRIVERS=y # 多驱动支持
+          CONFIG_CPU_IDLE_GOV_HALTPOLL=y # Halt-poll 调速
+          CONFIG_CPU_IDLE_GOV_MENU=y # Menu 调速
+          CONFIG_CPU_IDLE_GOV_LADDER=y # Ladder 调速
+
+          # 内存优化
+          CONFIG_ZRAM=y # ZRAM 压缩
+          CONFIG_ZRAM_MULTI_COMP=y # 多算法支持
+          CONFIG_ZRAM_LZ4=y # LZ4 压缩
+          CONFIG_ZRAM_ZSTD=y # ZSTD 压缩
+          CONFIG_ZRAM_WRITEBACK=y # ZRAM 写回
+
+          # 文件系统
+          CONFIG_F2FS_FS_COMPRESSION=y # F2FS 压缩
+          CONFIG_F2FS_FS_LZ4=y # F2FS LZ4
+          CONFIG_F2FS_FS_ZSTD=y # F2FS ZSTD
+
+          # 热管理
+          CONFIG_THERMAL_GOV_FAIR_SHARE=y # 公平分享
+          CONFIG_THERMAL_GOV_POWER_ALLOCATOR=y # 功率分配
+          CONFIG_THERMAL_GOV_STEP_WISE=y # 分步控制
+
+          # 网络优化
+          CONFIG_NET_SCH_CAKE=y # CAKE 调度
+          CONFIG_NET_SCH_FQ_CODEL=y # FQ_CoDel 调度
+          CONFIG_BQL=y # 字节队列限制
+
+          # 电源管理
+          CONFIG_PM_AUTOSLEEP=y # 自动睡眠
+          CONFIG_PM_WAKELOCKS=y # 唤醒锁
+          CONFIG_PM_GENERIC_DOMAINS=y # 通用电源域
+
+          # 稳定性与安全
+          CONFIG_HARDENED_USERCOPY=y # 用户复制加固
+          CONFIG_FORTIFY_SOURCE=y # 源码加固
+          CONFIG_HARDENED_USERCOPY_FALLBACK=y # 复制回退加固
+          CONFIG_STACKPROTECTOR=y # 栈保护
+          CONFIG_STACKPROTECTOR_STRONG=y # 强栈保护
+          CONFIG_HAVE_STACKPROTECTOR=y # 架构栈保护
+          CONFIG_HAVE_STACKPROTECTOR_SYSREG=y # 寄存器栈保护
+EOF
+          
+          # 移除构建流程中的 check_defconfig 校验
+          sed -i 's/check_defconfig//' ./common/build.config.gki
+
+      - name: Add make name & Set CONFIG_LOCALVERSION
+        run: |
+         cd kernel_workspace/kernel_platform
+         sed -i '208s|echo ".*"|echo "${KERNELVERSION}${scm_version}${config_localversion}"|' common/scripts/setlocalversion
+         sed -i "s/\${scm_version}/${{ github.event.inputs.KERNEL_NAME }}/g" ./common/scripts/setlocalversion
+         echo 'CONFIG_LOCALVERSION="${{ github.event.inputs.local_version }}"' >> ./common/arch/arm64/configs/gki_defconfig
+
+      - name: 拉取afdo
+        run: |
+          cd kernel_workspace/kernel_platform/
+          git clone https://github.com/PxxPei/afdo.git
+   
+      - name: Build Kernel
+        run: |
+         # 下载并配置 Clang
+         cd ${{ github.workspace }}/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86
+         wget -q https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
+         mkdir -p clang-19.0.0git
+         tar -xf Clang-19.0.0git-20240723.tar.gz -C clang-19.0.0git
+         export PATH="$(pwd)/clang-19.0.0git/bin:$PATH"
+         clang --version
+
+         # 设置编译参数
+         cd ${{ github.workspace }}/kernel_workspace/kernel_platform/common
+         export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.kernel_time }}"
+         export SOURCE_DATE_EPOCH=$(date -d "$KBUILD_BUILD_TIMESTAMP" +%s)
+         export AFDO_PROFILE="${{ github.workspace }}/kernel_workspace/kernel_platform/afdo/kernel.afdo"
+         export KCFLAGS="-Wno-error -fauto-profile=$AFDO_PROFILE"
+         export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
+
+         # 开始编译
+         rm -rf out
+         make -j$(nproc) $MAKE_ARGS gki_defconfig
+         make -j$(nproc) $MAKE_ARGS all
+
+         # 收集产物
+         mkdir -p ../dist
+         cp out/arch/arm64/boot/Image ../dist/
+         
+      - name: Prepare AnyKernel3 package
+        run: |
+          cd kernel_workspace/kernel_platform/dist
+          git clone https://github.com/3620603660/AnyKernel3.git AnyKernel3 --depth=1
+          rm -rf AnyKernel3/.git
+          cp Image AnyKernel3/
+          
+      - name: Upload AnyKernel3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnyKernel3_oneplus_ace5pro_(kowsu)noroot
+          path: kernel_workspace/kernel_platform/dist/AnyKernel3/*
