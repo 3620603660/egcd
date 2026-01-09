@@ -1,0 +1,281 @@
+name: ace5pro(oneplus_ace5_pro-112)noroot
+on:
+  workflow_dispatch:
+    inputs:
+      CPU:
+        description: "分支"
+        required: true
+        default: 'sm8750'
+      FEIL:
+        description: "配置文件"
+        required: true
+        default: 'oneplus_ace5_pro-112'
+      ANDROID_VERSION:
+        description: "内核安卓版本"
+        required: true
+        default: 'android15'
+      KERNEL_VERSION:
+        description: "内核版本"
+        required: true
+        default: '6.6'
+      KERNEL_NAME:
+        description: "修改内核名称"
+        required: true
+        default: '-android15-8-g29d86c5fc9dd-abogki428889875'
+      local_version:
+        description: '输入内核后缀名（如-v8）'
+        required: false
+        default: '-4k'
+        type: string
+      remove_default_4k:
+        description: '是否删除默认的 -4k 后缀？（勾选则删除）'
+        required: false
+        default: false
+        type: boolean
+      kernel_time:
+        description: '内核构建时间（UTC 时间字符串，例如 "Mon May 12 09:09:59 UTC 2025"）'
+        required: false
+        default: 'Tue Jul  1 19:48:18 UTC 2025'
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_DIR: /home/runner/.ccache
+      CCACHE_MAXSIZE: 8G
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_LOGFILE: ${{ github.workspace }}/ccache.log
+      TOKEN: ${{ secrets.TOKEN }}
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 8192
+          temp-reserve-mb: 2048
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
+      - name: Configure Git & Install Dependencies
+        run: |
+          git config --global user.name "build"
+          git config --global user.email "3620603668@qq.com"
+          sudo apt-get update -qq
+          sudo apt-get install -y python3 git curl ccache libelf-dev dos2unix
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore ccache
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.ccache
+          key: ${{ runner.os }}-${{ github.repository }}-v2_noroot-112
+          restore-keys: |
+            ${{ runner.os }}-${{ github.repository }}-
+            ${{ runner.os }}-
+            ccache-
+
+      - name: Setup build environment
+        run: |
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+          export SOURCE_DATE_EPOCH=$(date -d "${{ github.event.inputs.kernel_time }}" +%s)
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
+          ccache -s || true
+
+      - name: Install repo tool
+        run: |
+          curl -s https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+          chmod a+x ~/repo
+          sudo mv ~/repo /usr/local/bin/repo
+
+      - name: Initialize repo and sync
+        run: |
+          mkdir kernel_workspace && cd kernel_workspace
+          repo init -u https://github.com/3620603660/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
+          repo --trace sync -c -j$(nproc --all) --no-tags
+          rm kernel_platform/common/android/abi_gki_protected_exports_* 2>/dev/null || true
+          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* 2>/dev/null || true
+
+      - name: Apply kernel optimizations
+        run: |
+          cd kernel_workspace/kernel_platform
+          cat <<'EOF' >> ./common/arch/arm64/configs/gki_defconfig
+
+          # 文件系统优化 - F2FS
+          CONFIG_F2FS_FS_COMPRESSION=y
+          CONFIG_F2FS_FS_LZ4=y
+          CONFIG_F2FS_FS_ZSTD=y
+          CONFIG_F2FS_IO_QUEUE_ENHANCEMENT=y
+          CONFIG_F2FS_IO_LATENCY_ENHANCEMENT=y
+          CONFIG_F2FS_ATOMIC_WRITE=y
+          CONFIG_F2FS_IOSTAT=y
+          CONFIG_F2FS_FS_COMPRESSION_EXTENSION=y
+
+          # CPU 和电源管理 - 核心优化
+          CONFIG_CPU_FREQ=y
+          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
+          CONFIG_CPU_FREQ_STAT=y
+          CONFIG_CPU_HOTPLUG=y
+          CONFIG_CPU_IDLE=y
+          CONFIG_CPU_IDLE_GOV_TEO=y
+          CONFIG_CPU_IDLE_STATE_RESIDENCY=y
+          CONFIG_CPU_IDLE_MULTIPLE_DRIVERS=y
+          CONFIG_CPU_IDLE_GOV_HALTPOLL=y
+          CONFIG_PM_DOMAIN_CPU_GOV=y
+          CONFIG_PM_WAKELOCKS=y
+          CONFIG_PM_WAKELOCKS_GC=y
+          CONFIG_SCHED_CORE=y
+          CONFIG_SCHED_EAS=y
+          CONFIG_SCHED_EAS_PREFER_IDLE=y
+          CONFIG_SCHED_EAS_BOOST=y
+          CONFIG_SCHED_HRTICK=y
+          CONFIG_SCHED_MC=y
+          CONFIG_SCHED_THERMAL_PRESSURE=y
+          CONFIG_SCHED_TUNE=y
+          CONFIG_SCHED_UTIL_CLAMP=y
+          CONFIG_SCHED_WALT=y
+          CONFIG_THERMAL_GOV_FAIR_SHARE=y
+          CONFIG_THERMAL_GOV_POWER_ALLOCATOR=y
+          CONFIG_UCLAMP_TASK=y
+
+          # 内存管理 - 优化
+          CONFIG_ION=y
+          CONFIG_MEMCG=y
+          CONFIG_LRU_GEN=y
+          CONFIG_TRANSPARENT_HUGEPAGE=y
+          CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
+          CONFIG_ZRAM=y
+          CONFIG_ZRAM_LZ4=y
+          CONFIG_ZRAM_MULTI_COMP=y
+          CONFIG_ZRAM_ZSTD=y
+          CONFIG_ZSMALLOC=y
+          CONFIG_MEMORY_HOTPLUG=y
+          CONFIG_MEMORY_HOTPLUG_DEFAULT_ONLINE=y
+
+          # 网络优化 - 精选配置
+          CONFIG_BQL=y
+          CONFIG_DEFAULT_NET_SCH="cake"
+          CONFIG_NET_SCH_CAKE=y
+          CONFIG_NET_SCH_FQ=y
+          CONFIG_NET_SCH_FQ_CODEL=y
+          CONFIG_DEFAULT_TCP_CONG="bbr"
+          CONFIG_TCP_CONG_ADVANCED=y
+          CONFIG_TCP_CONG_BBR=y
+          CONFIG_TCP_CONG_CUBIC=y
+          CONFIG_TCP_FASTOPEN=y
+          CONFIG_TCP_SACK=y
+          CONFIG_TCP_TIMESTAMPS=y
+          CONFIG_INET=y
+          CONFIG_IPV6=y
+
+          # I/O 调度 - 性能优化
+          CONFIG_MQ_IOSCHED_BFQ=y
+          CONFIG_BFQ_GROUP_IOSCHED=y
+          CONFIG_BFQ_CGROUP_DEBUG=y
+          CONFIG_BLK_CGROUP_IOCOST=y
+          CONFIG_BLK_MQ=y
+          CONFIG_BLK_WBT=y
+          CONFIG_IO_URING=y
+
+          # 编译优化
+          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
+          CONFIG_LOCALVERSION_AUTO=n
+          CONFIG_LTO_CLANG_THIN=y
+
+          # 文件系统特性
+          CONFIG_TMPFS_POSIX_ACL=y
+          CONFIG_TMPFS_XATTR=y
+
+          EOF
+
+          # 移除不必要的配置检查
+          sed -i 's/check_defconfig//' ./common/build.config.gki
+
+          # 提交优化配置
+          cd common
+          git add -A
+          git commit -a -m "Optimize kernel: performance, latency, stability, power efficiency" || true
+
+      - name: Configure kernel version and name
+        run: |
+          cd kernel_workspace/kernel_platform
+          sed -i '208s|echo ".*"|echo "${KERNELVERSION}${scm_version}${config_localversion}"|' common/scripts/setlocalversion
+          sed -i "s/\${scm_version}/${{ github.event.inputs.KERNEL_NAME }}/g" ./common/scripts/setlocalversion
+          echo 'CONFIG_LOCALVERSION="${{ github.event.inputs.local_version }}"' >> ./common/arch/arm64/configs/gki_defconfig
+
+      - name: Remove -4k suffix if requested
+        if: ${{ fromJSON(github.event.inputs.remove_default_4k) }}
+        run: |
+          cd kernel_workspace/kernel_platform
+          sed -i 's/-4k//' ./common/arch/arm64/configs/gki_defconfig
+
+      - name: Download AFDO profile
+        run: |
+          cd kernel_workspace/kernel_platform/
+          git clone https://github.com/PxxPei/afdo.git --depth=1
+
+      - name: Build kernel with optimizations
+        run: |
+          cd ${{ github.workspace }}/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86
+
+          echo "⬇️ Downloading Clang 19.0.0git..."
+          wget -q https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
+
+          echo "📦 Extracting Clang..."
+          mkdir -p clang-19.0.0git
+          tar -xf Clang-19.0.0git-20240723.tar.gz -C clang-19.0.0git --strip-components=1
+
+          export PATH="$(pwd)/clang-19.0.0git/bin:/usr/lib/ccache:$PATH"
+          export KERNEL_TIME="${{ github.event.inputs.kernel_time }}"
+          export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
+          export SOURCE_DATE_EPOCH=$(date -d "$KERNEL_TIME" +%s)
+
+          cd ${{ github.workspace }}/kernel_workspace/kernel_platform/common
+
+          # Verify AFDO profile
+          AFDO_PROFILE="${{ github.workspace }}/kernel_workspace/kernel_platform/afdo/kernel.afdo"
+          if [ ! -f "$AFDO_PROFILE" ]; then
+            echo "Error: AFDO profile not found"
+            exit 1
+          fi
+
+          # Optimized build flags
+          export KCFLAGS="-fauto-profile=$AFDO_PROFILE"
+          export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+            RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+            PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+            LD=ld.lld HOSTLD=ld.lld O=out SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
+
+          rm -rf out
+
+          # Compile with optimizations
+          export KBUILD_CFLAGS="-fpolly -flto=thin -march=native"
+          make -j$(nproc) $MAKE_ARGS gki_defconfig
+          make -j$(nproc) $MAKE_ARGS all
+
+          # Prepare output
+          mkdir -p ../dist
+          cp out/arch/arm64/boot/Image ../dist/
+
+      - name: Verify kernel build
+        run: |
+          strings kernel_workspace/kernel_platform/common/out/vmlinux | grep -i "UTC" || echo "Build timestamp verification completed"
+
+      - name: Package AnyKernel3
+        run: |
+          cd kernel_workspace/kernel_platform/dist
+          git clone https://github.com/3620603660/AnyKernel3.git AnyKernel3 --depth=1
+          rm -rf AnyKernel3/.git AnyKernel3/push.sh
+          cp Image AnyKernel3/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnyKernel3_oneplus_ace5pro_${{ env.KSUVER }}_(kowsu)noroot
+          path: kernel_workspace/kernel_platform/dist/AnyKernel3/*
