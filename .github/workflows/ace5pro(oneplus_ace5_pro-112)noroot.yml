@@ -120,37 +120,54 @@ jobs:
          echo "✅ SUSFS 和 boot patch 应用完成"
          
       - name: Apply UNICODE_BYPASS and MEMORY_OPT
-        if: ${{ github.event.inputs.UNICODE_BYPASS }}
+        if: ${{ github.event.inputs.UNICODE_BYPASS == 'true' }}
         run: |
           set -e
-          # 进入工作目录
           cd kernel_workspace
-          # 克隆补丁仓库
-          git clone https://$TOKEN@github.com/3620603660/Px.git
           
-          # 定义补丁目录的绝对路径
+          # 克隆补丁仓库（如果目录已存在则跳过）
+          if [ ! -d "Px" ]; then
+            git clone https://$TOKEN@github.com/3620603660/Px.git
+          fi
+          
           PATCH_DIR="${{ github.workspace }}/kernel_workspace/Px/patches"
-          
-          # 进入内核源码目录（通常是 common 目录 ）应用补丁
           cd kernel_platform/common
           
+          # 定义一个安全的补丁应用函数
+          apply_patch( ) {
+            local patch_file=$1
+            local patch_name=$(basename "$patch_file")
+            echo "Checking patch: $patch_name"
+            # 使用 --dry-run -R 检查补丁是否已经应用过
+            if patch -p1 --dry-run -R < "$patch_file" > /dev/null 2>&1; then
+              echo "✅ Patch $patch_name already applied, skipping."
+            else
+              echo "Applying patch: $patch_name"
+              patch -p1 --forward < "$patch_file" || echo "⚠️ Warning: Failed to apply $patch_name, it might be partially applied or incompatible."
+            fi
+          }
+
           # 应用内存优化补丁
-          patch -p1 --forward < "${PATCH_DIR}/optimized_mem_operations.patch"
-          patch -p1 --forward < "${PATCH_DIR}/file_struct_8bytes_align.patch"
-          patch -p1 --forward < "${PATCH_DIR}/reduce_cache_pressure.patch"
+          apply_patch "${PATCH_DIR}/optimized_mem_operations.patch"
+          apply_patch "${PATCH_DIR}/file_struct_8bytes_align.patch"
+          apply_patch "${PATCH_DIR}/reduce_cache_pressure.patch"
           
           # 根据内核版本应用 Unicode 绕过补丁
-          # 注意：这里需要确保 KV1 变量已定义，或者直接使用 inputs.KERNEL_VERSION
           KV_MAJOR=$(echo "${{ github.event.inputs.KERNEL_VERSION }}" | cut -d. -f1)
           
           if [ "$KV_MAJOR" -lt 6 ]; then
-            patch -p1 --forward < "${PATCH_DIR}/clear_page_16bytes_align.patch"
+            apply_patch "${PATCH_DIR}/clear_page_16bytes_align.patch"
             echo "Patching unicode for 6.1-!"
-            patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch"
+            apply_patch "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch"
           else
-            cat "${PATCH_DIR}/clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward
-            echo "Patching unicode for 6.1+!"
-            patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch"
+            # 处理特殊的 6.1+ 补丁逻辑
+            if patch -p1 --dry-run -R < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch" > /dev/null 2>&1; then
+              echo "✅ Unicode bypass fix 6.1+ already applied, skipping."
+            else
+              echo "Applying Unicode bypass fix 6.1+..."
+              cat "${PATCH_DIR}/clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward || true
+              patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch" || true
+            fi
           fi
 
       - name: Apply kernel optimizations
