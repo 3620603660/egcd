@@ -37,6 +37,11 @@ on:
         required: false
         default: 'Tue Jul  1 19:48:18 UTC 2025'
         type: string
+      UNICODE_BYPASS:
+        type: boolean
+        description: "是否添加Unicode零宽绕过修复与内存优化补丁？"
+        required: true
+        default: false
 
 jobs:
   build:
@@ -102,6 +107,36 @@ jobs:
           rm kernel_platform/common/android/abi_gki_protected_exports_* 2>/dev/null || true
           rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* 2>/dev/null || true
 
+      - name: Set up SUSFS & apply patches
+        run: |
+         set -e
+         cd kernel_workspace
+         git clone https://$TOKEN@github.com/egcd521/111.git
+         git clone https://github.com/egcd521/egcd.git
+         cd kernel_platform
+         cp ../111/boot.patch ./common/
+         cd ./common
+         patch -s -p1 -F 3 < boot.patch
+         echo "✅ SUSFS 和 boot patch 应用完成"
+         
+      - name: Apply UNICODE_BYPASS and MEMORY_OPT
+        if: ${{ github.event.inputs.UNICODE_BYPASS == 'true' }}
+        run: |
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/egcd/patches"
+          cd kernel_workspace/kernel_platform/common
+          patch -p1 --forward < "${PATCH_DIR}/optimized_mem_operations.patch"
+          patch -p1 --forward < "${PATCH_DIR}/file_struct_8bytes_align.patch"
+          patch -p1 --forward < "${PATCH_DIR}/reduce_cache_pressure.patch"
+          if [ "$KV1" -lt 6 ]; then
+            patch -p1 --forward < "${PATCH_DIR}/clear_page_16bytes_align.patch"
+            echo "Patching unicode!"
+            patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch"
+          else
+            cat "${PATCH_DIR}/clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward
+            echo "Patching unicode!"
+            patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch"
+          fi
+
       - name: Apply kernel optimizations
         run: |
           cd kernel_workspace/kernel_platform
@@ -144,6 +179,12 @@ jobs:
           CONFIG_THERMAL_GOV_POWER_ALLOCATOR=y
           CONFIG_UCLAMP_TASK=y
 
+          # 启用压缩算法支持
+          CONFIG_CRYPTO_LZ4HC=y
+          CONFIG_CRYPTO_LZ4K=y
+          CONFIG_CRYPTO_LZ4KD=y
+          CONFIG_CRYPTO_842=y
+
           # 内存管理 - 优化
           CONFIG_ION=y
           CONFIG_MEMCG=y
@@ -184,9 +225,9 @@ jobs:
           CONFIG_IO_URING=y
 
           # 编译优化
-          CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
-          CONFIG_LOCALVERSION_AUTO=n
+          CONFIG_LTO_CLANG=y
           CONFIG_LTO_CLANG_THIN=y
+          CONFIG_LTO_POLLY=y
 
           # 文件系统特性
           CONFIG_TMPFS_POSIX_ACL=y
