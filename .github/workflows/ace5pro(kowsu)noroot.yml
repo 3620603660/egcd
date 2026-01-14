@@ -114,9 +114,67 @@ jobs:
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
 
-      - name: Export suffix
+      - name: Set up SUSFS & apply patches
         run: |
-          echo "TAG_SUFFIX=${{ github.event.inputs.KernelSU_Nex_tag }}" >> $GITHUB_ENV
+         set -e
+         cd kernel_workspace
+         git clone https://$TOKEN@github.com/3620603660/boot.git
+         git clone https://github.com/3620603660/egcd.git
+         cd kernel_platform
+         cp ../boot/1.patch ./common/
+         cd ./common
+         patch -s -p1 -F 3 < 1.patch
+         echo "✅ SUSFS 和 boot patch 应用完成"
+         
+      - name: Apply UNICODE_BYPASS and MEMORY_OPT
+        if: ${{ github.event.inputs.UNICODE_BYPASS == 'true' }}
+        run: |
+          set -e
+          cd kernel_workspace
+          
+          # 克隆补丁仓库（如果目录已存在则跳过）
+          if [ ! -d "Px" ]; then
+            git clone https://$TOKEN@github.com/3620603660/Px.git
+          fi
+          
+          PATCH_DIR="${{ github.workspace }}/kernel_workspace/Px/patches"
+          cd kernel_platform/common
+          
+          # 定义一个安全的补丁应用函数
+          apply_patch( ) {
+            local patch_file=$1
+            local patch_name=$(basename "$patch_file")
+            echo "Checking patch: $patch_name"
+            # 使用 --dry-run -R 检查补丁是否已经应用过
+            if patch -p1 --dry-run -R < "$patch_file" > /dev/null 2>&1; then
+              echo "✅ Patch $patch_name already applied, skipping."
+            else
+              echo "Applying patch: $patch_name"
+              patch -p1 --forward < "$patch_file" || echo "⚠️ Warning: Failed to apply $patch_name, it might be partially applied or incompatible."
+            fi
+          }
+          # 应用内存优化补丁
+          apply_patch "${PATCH_DIR}/optimized_mem_operations.patch"
+          apply_patch "${PATCH_DIR}/file_struct_8bytes_align.patch"
+          apply_patch "${PATCH_DIR}/reduce_cache_pressure.patch"
+          
+          # 根据内核版本应用 Unicode 绕过补丁
+          KV_MAJOR=$(echo "${{ github.event.inputs.KERNEL_VERSION }}" | cut -d. -f1)
+          
+          if [ "$KV_MAJOR" -lt 6 ]; then
+            apply_patch "${PATCH_DIR}/clear_page_16bytes_align.patch"
+            echo "Patching unicode for 6.1-!"
+            apply_patch "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch"
+          else
+            # 处理特殊的 6.1+ 补丁逻辑
+            if patch -p1 --dry-run -R < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch" > /dev/null 2>&1; then
+              echo "✅ Unicode bypass fix 6.1+ already applied, skipping."
+            else
+              echo "Applying Unicode bypass fix 6.1+..."
+              cat "${PATCH_DIR}/clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward || true
+              patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch" || true
+            fi
+          fi
 
       - name: 设置内核优化配置
         run: |
@@ -259,11 +317,6 @@ jobs:
           CONFIG_TMPFS_POSIX_ACL=y                      # TMPFS: 启用 POSIX ACL
           CONFIG_TMPFS_XATTR=y                          # TMPFS: 启用扩展属性
           
-          # 硬件特定支持
-          CONFIG_BT_QCA=y                               # 启用高通蓝牙驱动
-          CONFIG_NVME_MULTIPATH=y                       # 启用 NVMe 多路径支持
-          CONFIG_NVME_TARGET=y                          # 启用 NVMe 目标支持
-          
           EOF
           
           # 移除构建流程中的 check_defconfig 校验
@@ -296,9 +349,26 @@ jobs:
           cd kernel_workspace/kernel_platform/
           git clone https://github.com/PxxPei/afdo.git
 
+      - name: 拉取并集成 sched_ext 调度器
+        run: |
+         set -e
+         cd kernel_workspace/kernel_platform/common
+         git clone https://github.com/Numbersf/SCHED_PATCH.git -b "${{ github.event.inputs.CPU }}"
+         echo "正在拉取风驰补丁"
+         cp "./SCHED_PATCH/fengchi_${{ github.event.inputs.FEIL }}.patch" ./
+         if [[ -f "fengchi_${{ github.event.inputs.FEIL }}.patch" ]]; then
+         echo "正在打风驰补丁"
+         dos2unix "fengchi_${{ github.event.inputs.FEIL }}.patch"
+         patch -p1 -F 3 < "fengchi_${{ github.event.inputs.FEIL }}.patch"
+         echo "✅ fengchi_patch 完成"
+         else
+         echo "❌ 未匹配到补丁，风驰内核暂未支持你的机型，请关闭后重试"
+         exit 11
+         fi
+
       - name: Set build timestamp
         run: |         
-         export SOURCE_DATE_EPOCH=$(date -d "Tue Jul  1 19:48:18 UTC 2025" +%s)
+         export SOURCE_DATE_EPOCH=$(date -d "7月1日，周二19:48:18 UTC 2025" +%s)
          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
    
       - name: Build Kernel
