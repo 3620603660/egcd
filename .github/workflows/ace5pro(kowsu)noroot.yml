@@ -9,7 +9,7 @@ on:
       FEIL:
         description: "配置文件"
         required: true
-        default: 'oneplus_ace5_pro-112'
+        default: 'oneplus_ace5_pro'
       ANDROID_VERSION:
         description: "内核安卓版本"
         required: true
@@ -79,7 +79,7 @@ jobs:
         uses: actions/cache@v3
         with:
          path: /home/runner/.ccache
-         key: ${{ runner.os }}-${{ github.repository }}-v2_noroot-112
+         key: ${{ runner.os }}-${{ github.repository }}-v1_noroot
          restore-keys: |
           ${{ runner.os }}-${{ github.repository }}-
           ${{ runner.os }}-
@@ -108,8 +108,8 @@ jobs:
       - name: Initialize repo and sync
         run: |
          mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/3620603660/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
-         repo --trace sync -c -j$(nproc --all) --no-tags
+         repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
+         repo --trace sync -c -j$(nproc --) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
 
@@ -242,16 +242,30 @@ jobs:
           cd kernel_workspace/kernel_platform/
           git clone https://github.com/PxxPei/afdo.git
 
+      - name: 拉取并集成 sched_ext 调度器
+        run: |
+         set -e
+         cd kernel_workspace/kernel_platform/common
+         git clone https://github.com/Numbersf/SCHED_PATCH.git -b "${{ github.event.inputs.CPU }}"
+         echo "正在拉取风驰补丁"
+         cp "./SCHED_PATCH/fengchi_${{ github.event.inputs.FEIL }}.patch" ./
+         if [[ -f "fengchi_${{ github.event.inputs.FEIL }}.patch" ]]; then
+         echo "正在打风驰补丁"
+         dos2unix "fengchi_${{ github.event.inputs.FEIL }}.patch"
+         patch -p1 -F 3 < "fengchi_${{ github.event.inputs.FEIL }}.patch"
+         echo "✅ fengchi_patch 完成"
+         else
+         echo "❌ 未匹配到补丁，风驰内核暂未支持你的机型，请关闭后重试"
+         exit 11
+         fi
+
       - name: Build Kernel
         run: |
-         cd ${{ github.workspace }}/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86
-         wget -q https://github.com/ZyCromerZ/Clang/releases/download/19.0.0git-20240723-release/Clang-19.0.0git-20240723.tar.gz
-         mkdir -p clang-19.0.0git
-         tar -xf Clang-19.0.0git-20240723.tar.gz -C clang-19.0.0git
-         export PATH="$(pwd)/clang-19.0.0git/bin:$PATH"
-         
-         cd ${{ github.workspace }}/kernel_workspace/kernel_platform/common
-         export PATH="/usr/lib/ccache:$PATH"
+         # 加入 clang 到 PATH
+         export PATH="${{ github.workspace }}/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+         # 加入 ccache 到 PATH
+         export PATH="/usr/lib/ccache:$PATH" 
+
          export KERNEL_TIME="Tue Jul  1 19:48:18 UTC 2025"
          export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
          export SOURCE_DATE_EPOCH=$(date -d "$KERNEL_TIME" +%s)
